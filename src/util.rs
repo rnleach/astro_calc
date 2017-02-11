@@ -6,4 +6,7 @@
 //! License: BSD 3-clause, https://opensource.org/licenses/BSD-3-Clause
 //!
 
-// TODO define error....
+#[derive(Debug)]
+pub enum AstroAlgorithmsError {
+
+}
