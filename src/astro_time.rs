@@ -120,14 +120,16 @@ impl AstroTime {
     ///
     /// For a reference of dynamical time vs. UTC, see chapter 10 of 
     /// Astronomical Algorithms 2nd ed, by Jean Meeus.
+    ///
+    /// Note that this DOES NOT DO ANY CONVERSION from UTC to dynamcial time
+    /// using delta-t.
     pub fn dynamical_time( mut self ) -> AstroTime {
         self.time_type = TimeType::DT;
         self
     }
 
     /// Get the Julian Day number as a floating point value.
-    pub fn julian_day_number( &self ) -> f64
-    {
+    pub fn julian_day_number( &self ) -> f64 {
         self.julian_day
     }
 
@@ -202,6 +204,92 @@ pub fn julian_day_zero( year: i32 ) -> AstroTime {
         f64::floor( 365.25 * y ) - a + f64::floor( a / 4.0 ) + 1_721_424.5 )
 }
 
+/// Calculate the day of the year in the Gregorian Calendar
+pub fn day_of_year_gregorian( year: i32, month: i32, day: i32 ) -> i32 {
+    use std::f64;
+
+    #[allow(non_snake_case)]
+    let K: f64 = if is_gregorian_leap_year( year ) { 1.0 } else { 2.0 };
+
+    (f64::floor( ( month * 275 ) as f64 / 9.0 ) - 
+        K * f64::floor(( month + 9) as f64 / 12.0 )) as i32 + day - 30
+}
+
+/// Calculate the month and day in the Gregorian calendar from the year and
+/// day of the year.
+pub fn month_and_day_gregorian( year: i32, day_of_year: i32 ) -> ( i32, i32 ) {
+    use std::f64;
+
+    #[allow(non_snake_case)]
+    let K: f64 = if is_gregorian_leap_year( year ) { 1.0 } else { 2.0 };
+    #[allow(non_snake_case)]
+    let mut M: i32 = f64::floor(( 9.0 * ( K + day_of_year as f64 ) / 275.0 ) +
+        0.98 ) as i32;
+    if day_of_year < 32 { M = 1; }
+
+    #[allow(non_snake_case)]
+    let D: i32 = ( day_of_year as f64 - f64::floor( 275.0 * M as f64 / 9.0 ) + 
+        K as f64 * f64::floor(( M as f64 + 9.0 ) / 12.0) + 30.0 ) as i32;
+
+    ( M, D )
+}
+
+/// Is this a leap year in the Gregorian calendar
+pub fn is_gregorian_leap_year( year: i32 ) -> bool {
+    if year % 4 != 0 { false }
+    else if year % 100 != 0 { true }
+    else if year % 400 == 0 { true }
+    else { false }
+}
+
+/// Is this a leap year in the Julian calendar
+#[inline]
+pub fn is_julian_leap_year( year: i32 ) -> bool {
+    year % 4 == 0
+}
+
+/// Validate a date given in the Gregorian calendar
+pub fn is_valid_gregorian( year: i32, month: i32, day: i32 ) -> bool {
+    if month < 1 || month > 12 || 
+        day < 1 || day > days_per_month_gregorian( month, year ) { false }
+    else { true }
+}
+
+/// Validate a date given in the Julian calendar
+pub fn is_valid_julian( year: i32, month:i32, day: i32 ) -> bool {
+    if month < 1 || month > 12 || 
+        day < 1 || day > days_per_month_julian( month, year ) { false }
+    else { true }
+}
+
+// The days per month in the Gregorian calendar.
+fn days_per_month_gregorian( month: i32, year: i32 ) -> i32 {
+
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => { 
+            if is_gregorian_leap_year( year ) { 29 }
+            else { 28 }
+        },
+        _ => panic!("Invalid month.")
+    }
+}
+
+// The days per month in the Julian calendar.
+fn days_per_month_julian( month: i32, year: i32 ) -> i32 {
+
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => { 
+            if is_julian_leap_year( year ) { 29 }
+            else { 28 }
+        },
+        _ => panic!("Invalid month.")
+    }
+}
+
 // calculate the fraction of the day
 fn day_fraction( hour: i32, minute: i32, second: i32 ) -> f64 {
     assert!( hour >= 0 && hour < 24 );
@@ -224,20 +312,6 @@ fn to_hms( day_fraction: f64 ) -> (i32, i32, i32 ) {
     let second = f64::floor( remainder * 86_400.0 + 0.5 ) as i32;
 
     ( hour, minute, second )
-}
-
-/// Is this a leap year in the Gregorian calendar
-pub fn is_gregorian_leap_year( year: i32 ) -> bool {
-    if year % 4 != 0 { false }
-    else if year % 100 != 0 { true }
-    else if year % 400 == 0 { true }
-    else { false }
-}
-
-/// Is this a leap year in the Julian calendar
-#[inline]
-pub fn is_julian_leap_year( year: i32 ) -> bool {
-    year % 4 == 0
 }
 
 #[cfg(test)]
@@ -481,5 +555,60 @@ mod tests {
         assert!( is_julian_leap_year( 2100 ));
         assert!( !is_julian_leap_year( 2009 ));
         assert!( !is_julian_leap_year( 2010 ));
+    }
+
+    #[test]
+    fn test_is_valid_gregorian() {
+        assert!( is_valid_gregorian( 2017, 2, 15 ));
+        assert!( is_valid_gregorian( 2017, 3, 31 ));
+        assert!( is_valid_gregorian( 2017, 1, 31 ));
+        assert!( is_valid_gregorian( 2017, 4, 30 ));
+        assert!( is_valid_gregorian( 2017, 2, 28 ));
+        assert!( !is_valid_gregorian( 2017, 2, 29 ));
+        assert!( !is_valid_gregorian( 2017, 4, 31 ));
+        assert!( !is_valid_gregorian( 2017, 13, 56 ));
+        assert!( !is_valid_gregorian( 2017, 6, 40 ));
+        assert!( is_valid_gregorian( 2012, 2, 29 ));
+        assert!( !is_valid_gregorian(2000, 13, 5 ));
+        assert!( !is_valid_gregorian(2000, 4, 31 ));
+        assert!( !is_valid_gregorian(2000, 3, 32 ));
+        assert!( !is_valid_gregorian(2000, 2, 30 ));
+        assert!( !is_valid_gregorian(2100, 2, 29 ));
+        assert!( is_valid_gregorian(2000, 2, 29 ));
+        assert!( is_valid_gregorian(2000, 1, 15 ));
+    }
+
+    #[test]
+    fn test_is_valid_julian() {
+        assert!( is_valid_julian( 2017, 2, 15 ));
+        assert!( is_valid_julian( 2017, 3, 31 ));
+        assert!( is_valid_julian( 2017, 1, 31 ));
+        assert!( is_valid_julian( 2017, 4, 30 ));
+        assert!( is_valid_julian( 2017, 2, 28 ));
+        assert!( !is_valid_julian( 2017, 2, 29 ));
+        assert!( !is_valid_julian( 2017, 4, 31 ));
+        assert!( !is_valid_julian( 2017, 13, 56 ));
+        assert!( !is_valid_julian( 2017, 6, 40 ));
+        assert!( is_valid_julian( 2012, 2, 29 ));
+        assert!( !is_valid_julian(2000, 13, 5 ));
+        assert!( !is_valid_julian(2000, 4, 31 ));
+        assert!( !is_valid_julian(2000, 3, 32 ));
+        assert!( !is_valid_julian(2000, 2, 30 ));
+        assert!( is_valid_julian(2100, 2, 29 ));
+        assert!( is_valid_julian(2000, 2, 29 ));
+        assert!( is_valid_julian(2000, 1, 15 ));
+    }
+
+    #[test]
+    fn test_day_of_year_gregorian() {
+        assert!( day_of_year_gregorian( 1978, 11, 14 ) == 318 );
+        assert!( day_of_year_gregorian( 1988,  4, 22 ) == 113 );
+    }
+
+    #[test]
+    fn test_month_and_day_gregorian() {
+
+        assert!( month_and_day_gregorian( 1978, 318 ) == ( 11, 14 ));
+        assert!( month_and_day_gregorian( 1988, 113 ) == (  4, 22 ));
     }
 }
