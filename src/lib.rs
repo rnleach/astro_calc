@@ -1,3 +1,6 @@
+#[macro_use] 
+extern crate lazy_static;
+
 // Public export modules
 pub mod astro_time;
 

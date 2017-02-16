@@ -9,3 +9,4 @@ license = "BSD-3-Clause"
 read-me = "README.md"
 
 [dependencies]
+lazy_static = "0.1.*"
