@@ -11,8 +11,8 @@
   "build_systems":
   [
     {
-      "name": "Test",
-      "cmd":["cargo", "test"]
+      "name": "docs",
+      "cmd":["cargo", "doc", "--open"]
     },
   ]
 }
