@@ -4,11 +4,13 @@
 //! time.
 //!
 //! Authors: Ryan Leach
+//!
 //! Copyright: Ryan Leach, 2017
-//! License: BSD 3-clause, https://opensource.org/licenses/BSD-3-Clause
+//!
+//! License: [BSD 3-clause](https://opensource.org/licenses/BSD-3-Clause)
 //!
 
-use super::AstroTime;
+use super::AstroTmBldr;
 
 lazy_static! {
     pub static ref TIME_DELTA: Vec<(f64,f64)> = { 
@@ -746,15 +748,21 @@ lazy_static! {
             (2017,  1,  1,  68.5928)
         ];
 
-        let mut final_list: Vec<(f64, f64)> = 
+        let mut list: Vec<(f64, f64)> = 
             Vec::with_capacity( time_delta_date_list.len() );
-        for ( year, month, day, delta_t ) in time_delta_date_list {
-            let jd = AstroTime::from_gregorian_utc( year, month, day, 0, 0, 0).unwrap().
-                julian_day_number();
 
-                final_list.push(( jd, delta_t ));
+        for ( year, month, day, delta_t ) in time_delta_date_list {
+
+            let jd = AstroTmBldr::from_gregorian_utc( year, month, day, 0, 0, 0)
+            .build();
+
+            match jd {
+                  Ok( val ) => list.push(( val.julian_day_number(), delta_t )),
+                  // Ok to panic here, should always catch this during testing.
+                  Err( err) => panic!("Error: {:?}", err),
+            }
         }
 
-        final_list
+        list
     };
 }

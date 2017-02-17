@@ -3,8 +3,10 @@
 //! # Astronomical Algorithms and Calculations.
 //!
 //! Authors: Ryan Leach
+//!
 //! Copyright: Ryan Leach, 2017
-//! License: BSD 3-clause, https://opensource.org/licenses/BSD-3-Clause
+//!
+//! License: [BSD 3-clause](https://opensource.org/licenses/BSD-3-Clause)
 //!
 //! # Library for astronomical calculations.
 //! I'm implementing many of the algorithms from 
