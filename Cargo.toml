@@ -6,7 +6,7 @@ authors = ["Ryan Leach <ryan.n.leach@gmail.com>"]
 description = "Astronomical Algorithms"
 keywords = ["Astronomy", "Science"]
 license = "BSD-3-Clause"
-read-me = "README.md"
+readme = "README.md"
 
 [dependencies]
 lazy_static = "0.1.*"
