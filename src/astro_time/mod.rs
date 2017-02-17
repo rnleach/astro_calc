@@ -8,6 +8,8 @@
 use std::cmp::Ordering;
 use std::option::Option;
 
+use super::error::*;
+
 mod time_data;
 
 /// Represent different types of time. 
@@ -57,11 +59,15 @@ impl AstroTime {
     /// Create an AstroTime from a Julian Day number.
     ///
     /// It defaults to `TimeType::UT`.
-    pub fn from_raw( raw: f64 ) -> Option<AstroTime> {
+    pub fn from_raw( raw: f64 ) -> AstroResult<AstroTime> {
         // Only valid for values > 0
-        if raw < 0.0 { None }
+        if raw < 0.0 { 
+            Err( AstroAlgorithmsError::RangeError( 
+                DateRangeError::DateUnderflow( raw, 0.0 )
+            ))
+        }
         else {
-            Some(AstroTime { julian_day: raw, time_type: TimeType::UT })
+            Ok(AstroTime { julian_day: raw, time_type: TimeType::UT })
         }
     }
 
@@ -70,7 +76,7 @@ impl AstroTime {
     ///
     /// It defaults to `TimeType::UT`.
     pub fn from_gregorian_utc( mut year: i32,  mut month: i32, day: i32, 
-        hour: i32, minute: i32, second: i32 ) -> Option<AstroTime> {
+        hour: i32, minute: i32, second: i32 ) -> AstroResult<AstroTime> {
         // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition 
         // by Jean Meeus.
         use std::f64;
@@ -93,11 +99,16 @@ impl AstroTime {
                 f64::floor( 30.6001 * ( month + 1 ) as f64) + 
                 decimal_day + B - 1524.5;
 
-            assert!( jd >= 0.0 );
-
-            Some( AstroTime{ julian_day: jd, time_type: TimeType::UT } )
+            if jd >= 0.0 {
+                Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } )
+            }
+            else {
+                Err( AstroAlgorithmsError::RangeError( 
+                    DateRangeError::DateUnderflow( jd, 0.0 ))
+                )
+            }
         }
-        else { None }
+        else { Err( AstroAlgorithmsError::InvalidGregorianDate ) }
     }
 
     /// Create from a date and time in the Gregorian calendar assuming it is in
@@ -105,24 +116,33 @@ impl AstroTime {
     ///
     /// It defaults to `TimeType::UT`.
     pub fn from_julian_utc( mut year: i32,  mut month: i32, day: i32, 
-        hour: i32, minute: i32, second: i32 ) -> AstroTime {
+        hour: i32, minute: i32, second: i32 ) -> AstroResult<AstroTime> {
         // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition 
         // by Jean Meeus.
         use std::f64;
 
-        let decimal_day = day as f64 + day_fraction( hour, minute, second );
+        if is_valid_julian( year, month, day ) {
 
-        if month < 3 {
-            year -= 1;
-            month += 12;
+            let decimal_day = day as f64 + day_fraction( hour, minute, second );
+
+            if month < 3 {
+                year -= 1;
+                month += 12;
+            }
+
+            let jd = f64::floor( 365.25 * ( year + 4716) as f64 ) +
+                f64::floor( 30.6001 * ( month + 1 ) as f64) + decimal_day - 1524.5;
+
+            if jd >= 0.0 {
+                Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } )
+            }
+            else {
+                Err( AstroAlgorithmsError::RangeError( 
+                    DateRangeError::DateUnderflow( jd, 0.0 ))
+                )
+            }
         }
-
-        let jd = f64::floor( 365.25 * ( year + 4716) as f64 ) +
-            f64::floor( 30.6001 * ( month + 1 ) as f64) + decimal_day - 1524.5;
-
-        assert!( jd >= 0.0 );
-
-        AstroTime{ julian_day: jd, time_type: TimeType::UT }
+        else { Err( AstroAlgorithmsError::InvalidJulianDate ) }
     }
 
     /// Set the Time type to `TimeType::DT` to mark this as a dynamical time.
@@ -527,61 +547,61 @@ mod tests {
     fn test_from_julian_utc() {
         
         assert!( approx_eq(
-            AstroTime::from_julian_utc( 1957, 9, 21, 19, 26, 24 ).
+            AstroTime::from_julian_utc( 1957, 9, 21, 19, 26, 24 ).unwrap().
                 julian_day_number(),
             2_436_116.31, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( 1999, 12, 19, 12, 0, 0 ).
+            AstroTime::from_julian_utc( 1999, 12, 19, 12, 0, 0 ).unwrap().
                 julian_day_number(),
             2_451_545.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( 1998, 12, 19, 0, 0, 0 ).
+            AstroTime::from_julian_utc( 1998, 12, 19, 0, 0, 0 ).unwrap().
                 julian_day_number(),
             2_451_179.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( 837, 4, 10, 7, 12, 0 ).
+            AstroTime::from_julian_utc( 837, 4, 10, 7, 12, 0 ).unwrap().
                 julian_day_number(),
             2_026_871.8, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( -123, 12, 31, 0, 0, 0 ).
+            AstroTime::from_julian_utc( -123, 12, 31, 0, 0, 0 ).unwrap().
                 julian_day_number(),
             1_676_496.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( -122, 1, 1, 0, 0, 0 ).
+            AstroTime::from_julian_utc( -122, 1, 1, 0, 0, 0 ).unwrap().
                 julian_day_number(),
             1_676_497.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( -1000, 7, 12, 12, 0, 0 ).
+            AstroTime::from_julian_utc( -1000, 7, 12, 12, 0, 0 ).unwrap().
                 julian_day_number(),
             1_356_001.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( -1000, 2, 29, 0, 0, 0 ).
+            AstroTime::from_julian_utc( -1000, 2, 29, 0, 0, 0 ).unwrap().
                 julian_day_number(),
             1_355_866.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( -1001, 8, 17, 21, 36, 0 ).
+            AstroTime::from_julian_utc( -1001, 8, 17, 21, 36, 0 ).unwrap().
                 julian_day_number(),
             1_355_671.4, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_julian_utc( -4712, 1, 1, 12, 0, 0 ).
+            AstroTime::from_julian_utc( -4712, 1, 1, 12, 0, 0 ).unwrap().
                 julian_day_number(),
             0.0, 1.0e-15
         ));
