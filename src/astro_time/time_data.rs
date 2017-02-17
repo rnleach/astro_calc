@@ -749,7 +749,7 @@ lazy_static! {
         let mut final_list: Vec<(f64, f64)> = 
             Vec::with_capacity( time_delta_date_list.len() );
         for ( year, month, day, delta_t ) in time_delta_date_list {
-            let jd = AstroTime::from_gregorian_utc( year, month, day, 0, 0, 0).
+            let jd = AstroTime::from_gregorian_utc( year, month, day, 0, 0, 0).unwrap().
                 julian_day_number();
 
                 final_list.push(( jd, delta_t ));

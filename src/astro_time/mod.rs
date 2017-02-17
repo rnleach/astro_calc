@@ -6,6 +6,7 @@
 //! License: BSD 3-clause, https://opensource.org/licenses/BSD-3-Clause
 //!
 use std::cmp::Ordering;
+use std::option::Option;
 
 mod time_data;
 
@@ -27,7 +28,7 @@ pub enum TimeType {
 ///
 /// The internal representation is as a Julian Day number, but it is only valid
 /// for dates with Julian Day number >= 0.0. Many methods check for this and
-/// will panic if anything else is found.
+/// will return `Option::None` if found.
 pub struct AstroTime {
     julian_day: f64,
     time_type : TimeType, 
@@ -56,10 +57,12 @@ impl AstroTime {
     /// Create an AstroTime from a Julian Day number.
     ///
     /// It defaults to `TimeType::UT`.
-    pub fn from_raw( raw: f64 ) -> AstroTime {
+    pub fn from_raw( raw: f64 ) -> Option<AstroTime> {
         // Only valid for values > 0
-        assert!( raw >= 0.0 );
-        AstroTime { julian_day: raw, time_type: TimeType::UT }
+        if raw < 0.0 { None }
+        else {
+            Some(AstroTime { julian_day: raw, time_type: TimeType::UT })
+        }
     }
 
     /// Create from a date and time in the Gregorian calendar assuming it is in
@@ -67,30 +70,34 @@ impl AstroTime {
     ///
     /// It defaults to `TimeType::UT`.
     pub fn from_gregorian_utc( mut year: i32,  mut month: i32, day: i32, 
-        hour: i32, minute: i32, second: i32 ) -> AstroTime {
+        hour: i32, minute: i32, second: i32 ) -> Option<AstroTime> {
         // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition 
         // by Jean Meeus.
         use std::f64;
 
-        let decimal_day = day as f64 + day_fraction( hour, minute, second );
+        if is_valid_gregorian( year, month, day ) {
 
-        if month < 3 {
-            year -= 1;
-            month += 12;
+            let decimal_day = day as f64 + day_fraction( hour, minute, second );
+
+            if month < 3 {
+                year -= 1;
+                month += 12;
+            }
+
+            #[allow(non_snake_case)]
+            let A = f64::floor( year as f64 / 100.0 );
+            #[allow(non_snake_case)]
+            let B = 2.0 - A + f64::floor( A / 4.0 );
+
+            let jd = f64::floor( 365.25 * ( year + 4716) as f64 ) +
+                f64::floor( 30.6001 * ( month + 1 ) as f64) + 
+                decimal_day + B - 1524.5;
+
+            assert!( jd >= 0.0 );
+
+            Some( AstroTime{ julian_day: jd, time_type: TimeType::UT } )
         }
-
-        #[allow(non_snake_case)]
-        let A = f64::floor( year as f64 / 100.0 );
-        #[allow(non_snake_case)]
-        let B = 2.0 - A + f64::floor( A / 4.0 );
-
-        let jd = f64::floor( 365.25 * ( year + 4716) as f64 ) +
-            f64::floor( 30.6001 * ( month + 1 ) as f64) + 
-            decimal_day + B - 1524.5;
-
-        assert!( jd >= 0.0 );
-
-        AstroTime{ julian_day: jd, time_type: TimeType::UT }
+        else { None }
     }
 
     /// Create from a date and time in the Gregorian calendar assuming it is in
@@ -147,7 +154,7 @@ impl AstroTime {
     ///
     /// ```
     /// # use astro_calc::astro_time::AstroTime;
-    /// let a_date = AstroTime::from_gregorian_utc( 2017, 2, 11, 19, 58, 5);
+    /// let a_date = AstroTime::from_gregorian_utc( 2017, 2, 11, 19, 58, 5).unwrap();
     /// let (year, month, day, hour, minute, second) = a_date.to_gregorian_utc();
     /// assert!( year == 2017 );
     /// assert!( month == 2 );
@@ -194,11 +201,11 @@ impl AstroTime {
     /// the US Navy's website. It is hard coded into the library.
     pub fn as_utc( &self ) -> AstroTime {
         if self.time_type == TimeType::UT {
-            AstroTime::from_raw( self.julian_day )
+            AstroTime::from_raw( self.julian_day ).unwrap()
         }
         else {
             let dt = self.get_delta_t();
-            AstroTime::from_raw( self.julian_day - dt )
+            AstroTime::from_raw( self.julian_day - dt ).unwrap()
         }
     }
 
@@ -212,11 +219,11 @@ impl AstroTime {
     /// the US Navy's website. It is hard coded into the library.
     pub fn as_dt( &self ) -> AstroTime {
         if self.time_type == TimeType::DT {
-            AstroTime::from_raw( self.julian_day ).dynamical_time()
+            AstroTime::from_raw( self.julian_day ).unwrap().dynamical_time()
         }
         else {
             let dt = self.get_delta_t();
-            AstroTime::from_raw( self.julian_day + dt ).dynamical_time()
+            AstroTime::from_raw( self.julian_day + dt ).unwrap().dynamical_time()
         }
     }
 
@@ -254,11 +261,11 @@ impl AstroTime {
             // Algorithm adapted from chapter 10, pages 78-80 of Astronomical 
             // Algorithms,  2nd Edition by Jean Meeus.
             let t: f64 = ( self.julian_day - 
-                AstroTime::from_gregorian_utc( 2000, 1, 1, 0, 0, 0 ).
+                AstroTime::from_gregorian_utc( 2000, 1, 1, 0, 0, 0 ).unwrap().
                 julian_day ) / 36524.25;
 
             if self.julian_day < 
-                AstroTime::from_gregorian_utc( 948, 1, 1, 0, 0, 0 ).julian_day {
+                AstroTime::from_gregorian_utc( 948, 1, 1, 0, 0, 0 ).unwrap().julian_day {
               ( 2177.0 + 497.0 * t + 44.1 * t * t ) / 86_400.0
             }
             else {
@@ -287,7 +294,7 @@ pub fn julian_day_zero( year: i32 ) -> AstroTime {
     let a = f64::floor( y / 100.0 );
 
     AstroTime::from_raw(
-        f64::floor( 365.25 * y ) - a + f64::floor( a / 4.0 ) + 1_721_424.5 )
+        f64::floor( 365.25 * y ) - a + f64::floor( a / 4.0 ) + 1_721_424.5 ).unwrap()
 }
 
 /// Calculate the day of the year in the Gregorian Calendar
@@ -411,7 +418,7 @@ mod tests {
 
     #[test]
     fn test_from_raw() {
-        let test_time = AstroTime::from_raw( 110.0 );
+        let test_time = AstroTime::from_raw( 110.0 ).unwrap();
         let jd = test_time.julian_day_number();
         assert!( jd == 110.0 );
     }
@@ -420,97 +427,97 @@ mod tests {
     fn test_from_gregorian_utc() {
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( -99, 3, 1, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( -99, 3, 1, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             1_684_959.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1957, 10, 4, 19, 26, 24 ).
+            AstroTime::from_gregorian_utc( 1957, 10, 4, 19, 26, 24 ).unwrap().
                 julian_day_number(), 
             2_436_116.31, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 2000, 1, 1, 12, 0, 0 ).
+            AstroTime::from_gregorian_utc( 2000, 1, 1, 12, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_451_545.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1999, 1, 1, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1999, 1, 1, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_451_179.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1987, 1, 27, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1987, 1, 27, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_446_822.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1987, 6, 19, 12, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1987, 6, 19, 12, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_446_966.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1988, 1, 27, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1988, 1, 27, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_447_187.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1988, 6, 19, 12, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1988, 6, 19, 12, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_447_332.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1900, 1, 1, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1900, 1, 1, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_415_020.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1600, 1, 1, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1600, 1, 1, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_305_447.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1600, 12, 31, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1600, 12, 31, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             2_305_812.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 837, 4, 14, 7, 12, 0 ).
+            AstroTime::from_gregorian_utc( 837, 4, 14, 7, 12, 0 ).unwrap().
                 julian_day_number(), 
             2_026_871.8, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( -123, 12, 28, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( -123, 12, 28, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             1_676_496.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( -123, 12, 29, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( -123, 12, 29, 0, 0, 0 ).unwrap().
                 julian_day_number(), 
             1_676_497.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( -200, 7, 2, 12, 0, 0 ).
+            AstroTime::from_gregorian_utc( -200, 7, 2, 12, 0, 0 ).unwrap().
                 julian_day_number(), 
             1_648_194.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( -1000, 7, 3, 12, 0, 0 ).
+            AstroTime::from_gregorian_utc( -1000, 7, 3, 12, 0, 0 ).unwrap().
                 julian_day_number(), 
             1_356_001.0, 1.0e-15
         ));
@@ -583,7 +590,7 @@ mod tests {
     #[test]
     fn test_modified_julian_day_number() {
         assert!( approx_eq(
-            AstroTime::from_gregorian_utc( 1858, 11, 17, 0, 0, 0 ).
+            AstroTime::from_gregorian_utc( 1858, 11, 17, 0, 0, 0 ).unwrap().
                 modified_julian_day_number(),
             0.0, 1.0e-15
         ));
@@ -592,33 +599,33 @@ mod tests {
     #[test]
     fn test_to_gregorian_utc(){
 
-        assert!( AstroTime::from_raw( 2_436_116.31 ).to_gregorian_utc() == 
+        assert!( AstroTime::from_raw( 2_436_116.31 ).unwrap().to_gregorian_utc() == 
             (1957, 10, 4, 19, 26, 24));
         
-        assert!( AstroTime::from_raw( 2_451_545.0 ).to_gregorian_utc() == 
+        assert!( AstroTime::from_raw( 2_451_545.0 ).unwrap().to_gregorian_utc() == 
             (2000, 1, 1, 12, 0, 0));
 
 
-        assert!( AstroTime::from_raw( 1_676_497.5 ).to_gregorian_utc() == 
+        assert!( AstroTime::from_raw( 1_676_497.5 ).unwrap().to_gregorian_utc() == 
             ( -123, 12, 29, 0, 0, 0 ));
 
-        assert!( AstroTime::from_gregorian_utc( -123, 12, 29, 0, 0, 0 ).
+        assert!( AstroTime::from_gregorian_utc( -123, 12, 29, 0, 0, 0 ).unwrap().
             to_gregorian_utc() == ( -123, 12, 29, 0, 0, 0 ));
 
-        assert!( AstroTime::from_gregorian_utc( -2300, 6, 12, 19, 23, 14 ).
+        assert!( AstroTime::from_gregorian_utc( -2300, 6, 12, 19, 23, 14 ).unwrap().
             to_gregorian_utc() == ( -2300, 6, 12, 19, 23, 14 ));
 
-        assert!( AstroTime::from_raw( 1_356_001.25 ).to_gregorian_utc() == 
+        assert!( AstroTime::from_raw( 1_356_001.25 ).unwrap().to_gregorian_utc() == 
             ( -1000, 7, 3, 18, 0, 0 ));
 
-        assert!( AstroTime::from_raw( 1_356_001.0 ).to_gregorian_utc() == 
+        assert!( AstroTime::from_raw( 1_356_001.0 ).unwrap().to_gregorian_utc() == 
             ( -1000, 7, 3, 12, 0, 0 ));
     }
 
     #[test]
     fn test_julian_day_zero() {
         assert!(
-            AstroTime::from_gregorian_utc( 2016, 12, 31, 0, 0, 0 )
+            AstroTime::from_gregorian_utc( 2016, 12, 31, 0, 0, 0 ).unwrap()
             == julian_day_zero( 2017 )
         );
     }
@@ -700,10 +707,10 @@ mod tests {
 
     #[test]
     fn test_as_utc() {
-        let a_dt = AstroTime::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 )
+        let a_dt = AstroTime::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 ).unwrap()
                     .dynamical_time();
         let as_utc = a_dt.as_utc();
-        let as_utc2 = AstroTime::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 );
+        let as_utc2 = AstroTime::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 ).unwrap();
 
         assert!( approx_eq( as_utc.julian_day_number(), 
             as_utc2.julian_day_number(), 1.0e-5));
@@ -711,8 +718,8 @@ mod tests {
 
     #[test]
     fn test_as_dt() {
-        let a_utc = AstroTime::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 );
-        let a_dt = AstroTime::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 )
+        let a_utc = AstroTime::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 ).unwrap();
+        let a_dt = AstroTime::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 ).unwrap()
                     .dynamical_time();
         let as_dt = a_utc.as_dt();
         
