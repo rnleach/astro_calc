@@ -1,5 +1,5 @@
 //!
-//! Module contains library wide utilities and constants.
+//! Module for dealing with time in astronomical calculations.
 //!
 //! Authors: Ryan Leach
 //!
@@ -16,11 +16,10 @@ mod time_data;
 
 /// Represent different types of time. 
 ///
-/// Dynamic Time is measured by atomic clocks and represents the kind of time
-/// you do physical calculations with. Universal time is determined by the 
-/// position of Earth with respect to the Sun and varies by leap seconds to
-/// account for minor changes in Earth's orbit.
-#[derive(PartialEq, Eq)]
+/// Dynamic Time is measured by atomic clocks and represents the kind of time you do physical 
+/// calculations with. Universal time is determined by the position of Earth with respect to the 
+/// Sun and varies by leap seconds to account for minor changes in Earth's orbit.
+#[derive(PartialEq, Eq, Debug)]
 pub enum TimeType {
     /// Universal Time, also known as UTC, Zulu, or GMT
     UT,
@@ -29,6 +28,7 @@ pub enum TimeType {
 }
 
 /// Builder for AstroTime
+#[derive(Debug)]
 pub struct AstroTmBldr {
     target: AstroResult<AstroTime>,
 }
@@ -38,22 +38,24 @@ impl AstroTmBldr {
     ///
     /// It defaults to `TimeType::UT`.
     pub fn from_raw( raw: f64 ) -> AstroTmBldr {
-        AstroTmBldr { target: 
-            Ok ( AstroTime { julian_day: raw, time_type: TimeType::UT } ) 
+        if raw >= 0.0 {
+            AstroTmBldr { target: Ok( AstroTime { julian_day: raw, time_type: TimeType::UT } ) }
+        } else {
+            AstroTmBldr { target: Err( AstroAlgorithmsError::RangeError( 
+                DateRangeError::DateUnderflow( raw, 0.0 )
+            ))}
         }
     }
 
-    /// Create from a date and time in the Gregorian calendar assuming it is in
-    /// the UTC time zone.
+    /// Create from a date and time in the Gregorian calendar assuming it is in the UTC time zone.
     ///
     /// It defaults to `TimeType::UT`.
-    pub fn from_gregorian_utc( mut year: i32,  mut month: i32, day: i32, 
-        hour: i32, minute: i32, second: i32 ) -> AstroTmBldr {
-        // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition 
-        // by Jean Meeus.
+    pub fn from_gregorian_utc( mut year: i32,  mut month: i32, day: i32, hour: i32, minute: i32, 
+        second: i32 ) -> AstroTmBldr {
+        // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition by Jean Meeus.
         use std::f64;
 
-        if is_valid_gregorian( year, month, day ) {
+        if is_valid_gregorian(year, month, day) && is_valid_time(hour, minute, second) {
 
             let decimal_day = day as f64 + day_fraction( hour, minute, second );
 
@@ -67,39 +69,35 @@ impl AstroTmBldr {
             #[allow(non_snake_case)]
             let B = 2.0 - A + f64::floor( A / 4.0 );
 
-            let jd = f64::floor( 365.25 * ( year + 4716) as f64 ) +
-                f64::floor( 30.6001 * ( month + 1 ) as f64) + 
-                decimal_day + B - 1524.5;
+            let jd = f64::floor( 365.25 * ( year + 4716) as f64 ) + 
+                     f64::floor( 30.6001 * ( month + 1 ) as f64) + decimal_day + B - 1524.5;
 
             if jd >= 0.0 {
-                AstroTmBldr { target: 
-                    Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } )
-                }
+                AstroTmBldr { target: Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } ) }
             }
             else {
-                AstroTmBldr { target: 
-                    Err( AstroAlgorithmsError::RangeError( 
-                        DateRangeError::DateUnderflow( jd, 0.0 ))
-                    )
-                }
+                AstroTmBldr { target: Err( AstroAlgorithmsError::RangeError( 
+                    DateRangeError::DateUnderflow( jd, 0.0 )
+                ))}
             }
-        }
-        else { AstroTmBldr { target:
-            Err( AstroAlgorithmsError::InvalidGregorianDate ) }
+        } else if !is_valid_gregorian(year, month, day) { 
+            AstroTmBldr { target: 
+                Err(AstroAlgorithmsError::InvalidGregorianDate(year, month, day)) 
+            }
+        } else {
+            AstroTmBldr { target: Err(AstroAlgorithmsError::InvalidTime(hour, minute, second)) }
         }
     }
 
-    /// Create from a date and time in the Gregorian calendar assuming it is in
-    /// the UTC time zone.
+    /// Create from a date and time in the Gregorian calendar assuming it is in the UTC time zone.
     ///
     /// It defaults to `TimeType::UT`.
-    pub fn from_julian_utc( mut year: i32,  mut month: i32, day: i32, 
-        hour: i32, minute: i32, second: i32 ) -> AstroTmBldr {
-        // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition 
-        // by Jean Meeus.
+    pub fn from_julian_utc( mut year: i32,  mut month: i32, day: i32, hour: i32, minute: i32, 
+        second: i32 ) -> AstroTmBldr {
+        // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition by Jean Meeus.
         use std::f64;
 
-        if is_valid_julian( year, month, day ) {
+        if is_valid_julian( year, month, day ) && is_valid_time(hour, minute, second) {
 
             let decimal_day = day as f64 + day_fraction( hour, minute, second );
 
@@ -112,32 +110,27 @@ impl AstroTmBldr {
                 f64::floor( 30.6001 * ( month + 1 ) as f64) + decimal_day - 1524.5;
 
             if jd >= 0.0 {
-                AstroTmBldr { target:
-                    Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } )
-                }
+                AstroTmBldr { target: Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } ) }
             }
             else {
-                AstroTmBldr { target:
-                    Err( AstroAlgorithmsError::RangeError( 
-                        DateRangeError::DateUnderflow( jd, 0.0 ))
-                    )
-                }
+                AstroTmBldr { target: Err( AstroAlgorithmsError::RangeError( 
+                        DateRangeError::DateUnderflow( jd, 0.0 )
+                ))}
             }
-        }
-        else { 
-            AstroTmBldr { target:
-                Err( AstroAlgorithmsError::InvalidJulianDate ) 
-            }
+        } else if !is_valid_julian(year, month, day) { 
+            AstroTmBldr { target: Err( AstroAlgorithmsError::InvalidJulianDate(year, month, day)) }
+        } else {
+            AstroTmBldr { target: Err(AstroAlgorithmsError::InvalidTime(hour, minute, second)) }
         }
     }
 
     /// Set the Time type to `TimeType::DT` to mark this as a dynamical time.
     ///
-    /// For a reference of dynamical time vs. UTC, see chapter 10 of 
-    /// Astronomical Algorithms 2nd ed, by Jean Meeus.
+    /// For a reference of dynamical time vs. UTC, see chapter 10 of Astronomical Algorithms 
+    /// 2nd ed, by Jean Meeus.
     ///
-    /// Note that this DOES NOT DO ANY CONVERSION from UTC to dynamcial time
-    /// using delta-t.
+    /// Note that this DOES NOT DO ANY CONVERSION from UTC to dynamcial time using delta-t. It is
+    /// only for specifying a dynamical time while building.
     pub fn dynamical_time( self ) -> AstroTmBldr {
         match self.target {
             Ok(mut atime ) => {
@@ -157,9 +150,9 @@ impl AstroTmBldr {
 
 /// Represent a time.
 ///
-/// The internal representation is as a Julian Day number, but it is only valid
-/// for dates with Julian Day number >= 0.0. Many methods check for this and
-/// will return `Option::None` if found.
+/// The internal representation is as a Julian Day number, but it is only valid for dates with 
+/// Julian Day number >= 0.0. Many methods check for this and will return an error if found.
+#[derive(Debug)]
 pub struct AstroTime {
     julian_day: f64,
     time_type : TimeType, 
@@ -168,7 +161,7 @@ pub struct AstroTime {
 impl PartialEq for AstroTime {
     
     fn eq(&self, other: &AstroTime) -> bool {
-        self.julian_day == other.julian_day && self.time_type == other.time_type
+        self.time_type == other.time_type && self.julian_day == other.julian_day
     }
 }
 
@@ -190,8 +183,8 @@ impl AstroTime {
         self.julian_day
     }
 
-    /// Get the Modified Julian Day as defined by the number of days since
-    /// midnight 17 November, 1858.
+    /// Get the Modified Julian Day as defined by the number of days since midnight
+    /// 17 November, 1858.
     pub fn modified_julian_day_number( &self ) -> f64 {
         self.julian_day - 2_400_000.5
     }
@@ -212,8 +205,8 @@ impl AstroTime {
     /// assert!( second == 5 );
     /// ```
     pub fn to_gregorian_utc( &self ) -> ( i32, i32, i32, i32, i32, i32 ) {
-        // Adapted from chapter 7, pages 60-61 of Astronomical Algorithms, 
-        // 2nd Edition by Jean Meeus.
+        // Adapted from chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition 
+        // by Jean Meeus.
         use std::f64;
 
         let z = f64::floor( self.julian_day + 0.5 );
@@ -239,41 +232,37 @@ impl AstroTime {
         ( year, month, day, hour, minute, second )
     }
 
-    /// Whatever time type (dynamical or UTC) create a copy in UTC by applying
-    /// an *_approximate_* conversion. This can be wildly inaccurate for years
-    /// before 1620 and years after 2017. Future dates use a forecasted
-    /// correction value, which is very hard to predict.
+    /// Whatever time type (dynamical or UTC) create a copy in UTC by applying an *_approximate_* 
+    /// conversion. This can be wildly inaccurate for years before 1620 and years after 2017. 
+    /// Future dates use a forecasted correction value, which is very hard to predict.
     ///
-    /// Offsets are linearly interpolated from data take from "Astronomical
-    /// Algorithms, 2nd ed." by Jean Meeus, pg 79 and some data downloaded from
-    /// the US Navy's website. It is hard coded into the library.
-    pub fn as_utc( &self ) -> AstroTime {
+    /// Offsets are linearly interpolated from data take from "Astronomical Algorithms, 2nd ed." 
+    /// by Jean Meeus, pg 79 and some data downloaded from the US Navy's website. It is hard coded
+    /// into the library.
+    pub fn as_utc( &self ) -> AstroResult<AstroTime> {
         if self.time_type == TimeType::UT {
-            AstroTmBldr::from_raw( self.julian_day ).build().unwrap()
+            AstroTmBldr::from_raw( self.julian_day ).build()
         }
         else {
             let dt = self.get_delta_t();
-            AstroTmBldr::from_raw( self.julian_day - dt ).build().unwrap()
+            AstroTmBldr::from_raw( self.julian_day - dt ).build()
         }
     }
 
-    // Whatever time type (dynamical or UTC) create a copy in dynamical time by 
-    /// applying an *_approximate_* conversion. This can be wildly inaccurate 
-    /// for years before 1620 and years after 2017. Future dates use a 
-    /// forecasted correction value, which is very hard to predict.
+    // Whatever time type (dynamical or UTC) create a copy in dynamical time by applying an
+    /// *_approximate_* conversion. This can be wildly inaccurate for years before 1620 and years
+    /// after 2017. Future dates use a forecasted correction value, which is very hard to predict.
     ///
-    /// Offsets are linearly interpolated from data take from "Astronomical
-    /// Algorithms, 2nd ed." by Jean Meeus, pg 79 and some data downloaded from
-    /// the US Navy's website. It is hard coded into the library.
-    pub fn as_dt( &self ) -> AstroTime {
+    /// Offsets are linearly interpolated from data take from "Astronomical Algorithms, 2nd ed."
+    /// by Jean Meeus, pg 79 and some data downloaded from the US Navy's website. It is hard coded
+    /// into the library.
+    pub fn as_dt( &self ) -> AstroResult<AstroTime> {
         if self.time_type == TimeType::DT {
-            AstroTmBldr::from_raw( self.julian_day )
-            .dynamical_time().build().unwrap()
+            AstroTmBldr::from_raw( self.julian_day ).dynamical_time().build()
         }
         else {
             let dt = self.get_delta_t();
-            AstroTmBldr::from_raw( self.julian_day + dt )
-            .dynamical_time().build().unwrap()
+            AstroTmBldr::from_raw( self.julian_day + dt ).dynamical_time().build()
         }
     }
 
@@ -297,7 +286,7 @@ impl AstroTime {
                 }
             }
 
-            assert!( i > 0 && i < TIME_DELTA.len() - 1 );
+            debug_assert!( i < TIME_DELTA.len() - 1 );
             let ( left, _ )   = TIME_DELTA[i];
             let ( right, _ )  = TIME_DELTA[i + 1];
             let ( _, bottom ) = TIME_DELTA[i];
@@ -315,11 +304,9 @@ impl AstroTime {
                 .unwrap().julian_day ) / 36524.25;
 
             if self.julian_day < 
-                AstroTmBldr::from_gregorian_utc( 948, 1, 1, 0, 0, 0 ).build()
-                .unwrap().julian_day {
-              ( 2177.0 + 497.0 * t + 44.1 * t * t ) / 86_400.0
-            }
-            else {
+            AstroTmBldr::from_gregorian_utc( 948, 1, 1, 0, 0, 0 ).build().unwrap().julian_day {
+                ( 2177.0 + 497.0 * t + 44.1 * t * t ) / 86_400.0
+            } else {
                 // Year must not be in table or before 948
                 ( 102.0 + 102.0 * t + 25.3 * t * t ) / 86_400.0
             }
@@ -332,37 +319,40 @@ impl AstroTime {
 ///
 /// This is the same as December 31.0 for the previous year. 
 ///
-/// Algorithm adapted from chapter 7, page 62 of Astronomical Algorithms, 
-/// 2nd Edition by Jean Meeus.
+/// Algorithm adapted from chapter 7, page 62 of Astronomical Algorithms, 2nd Edition
+/// by Jean Meeus.
 ///
-/// The argument year is in the Gregorian Calendar, and the return value is 
-/// in Universal Time, not Dynamical Time.
+/// The argument year is in the Gregorian Calendar, and the return value is in Universal Time, not
+/// Dynamical Time.
 ///
-pub fn julian_day_zero( year: i32 ) -> AstroTime {
+pub fn julian_day_zero( year: i32 ) -> AstroResult<AstroTime> {
     use std::f64;
 
-    let y = year as f64 - 1.0;
+    let y = (year - 1) as f64;
     let a = f64::floor( y / 100.0 );
 
-    AstroTmBldr::from_raw(
-        f64::floor( 365.25 * y ) - a + f64::floor( a / 4.0 ) + 1_721_424.5 )
-    .build().unwrap()
+    AstroTmBldr::from_raw(f64::floor(365.25 * y) - a + f64::floor(a / 4.0) + 1_721_424.5).build()
 }
 
 /// Calculate the day of the year in the Gregorian Calendar
-pub fn day_of_year_gregorian( year: i32, month: i32, day: i32 ) -> i32 {
+pub fn day_of_year_gregorian( year: i32, month: i32, day: i32 ) -> AstroResult<i32> {
     use std::f64;
 
-    #[allow(non_snake_case)]
-    let K: f64 = if is_gregorian_leap_year( year ) { 1.0 } else { 2.0 };
+    if is_valid_gregorian(year, month, day) {
+        #[allow(non_snake_case)]
+        let K: f64 = if is_gregorian_leap_year( year ) { 1.0 } else { 2.0 };
 
-    (f64::floor( ( month * 275 ) as f64 / 9.0 ) - 
-        K * f64::floor(( month + 9) as f64 / 12.0 )) as i32 + day - 30
+        Ok((f64::floor( ( month * 275 ) as f64 / 9.0 ) - 
+            K * f64::floor(( month + 9) as f64 / 12.0 )) as i32 + day - 30)
+        
+    } else {
+        Err( AstroAlgorithmsError::InvalidGregorianDate(year, month, day))
+    }
 }
 
 /// Calculate the month and day in the Gregorian calendar from the year and
 /// day of the year.
-pub fn month_and_day_gregorian( year: i32, day_of_year: i32 ) -> ( i32, i32 ) {
+pub fn month_and_day_gregorian( year: i32, day_of_year: i32 ) -> AstroResult<(i32, i32)> {
     use std::f64;
 
     #[allow(non_snake_case)]
@@ -376,7 +366,11 @@ pub fn month_and_day_gregorian( year: i32, day_of_year: i32 ) -> ( i32, i32 ) {
     let D: i32 = ( day_of_year as f64 - f64::floor( 275.0 * M as f64 / 9.0 ) + 
         K as f64 * f64::floor(( M as f64 + 9.0 ) / 12.0) + 30.0 ) as i32;
 
-    ( M, D )
+    if is_valid_gregorian( year, M, D) {
+        Ok((M,D))
+    } else {
+        Err( AstroAlgorithmsError::InvalidGregorianDate(year, M, D))
+    }
 }
 
 /// Is this a leap year in the Gregorian calendar
@@ -395,16 +389,31 @@ pub fn is_julian_leap_year( year: i32 ) -> bool {
 
 /// Validate a date given in the Gregorian calendar
 pub fn is_valid_gregorian( year: i32, month: i32, day: i32 ) -> bool {
-    if month < 1 || month > 12 || 
-        day < 1 || day > days_per_month_gregorian( month, year ) { false }
+    if month < 1 || month > 12 || day < 1 || day > days_per_month_gregorian(month, year) { false }
     else { true }
 }
 
 /// Validate a date given in the Julian calendar
 pub fn is_valid_julian( year: i32, month:i32, day: i32 ) -> bool {
-    if month < 1 || month > 12 || 
-        day < 1 || day > days_per_month_julian( month, year ) { false }
+    if month < 1 || month > 12 || day < 1 || day > days_per_month_julian(month, year) { false }
     else { true }
+}
+
+/// Validate a time.
+pub fn is_valid_time( hour: i32, minute: i32, second: i32) -> bool {
+    match hour {
+        0...23 => (),
+        _ => return false,
+    }
+    match minute {
+        0...59 => (),
+        _ => return false,
+    }
+    match second {
+        0...59 => (),
+        _ => return false,
+    }
+    true
 }
 
 // The days per month in the Gregorian calendar.
@@ -414,9 +423,10 @@ fn days_per_month_gregorian( month: i32, year: i32 ) -> i32 {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,
         2 => { 
-            if is_gregorian_leap_year( year ) { 29 }
-            else { 28 }
-        },
+                if is_gregorian_leap_year( year ) { 29 }
+                else { 28 }
+             },
+        // Should not be able to panic if dates were validated before using this function.
         _ => panic!("Invalid month.")
     }
 }
@@ -428,26 +438,30 @@ fn days_per_month_julian( month: i32, year: i32 ) -> i32 {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,
         2 => { 
-            if is_julian_leap_year( year ) { 29 }
-            else { 28 }
-        },
+                if is_julian_leap_year( year ) { 29 }
+                else { 28 }
+             },
+        // Should not be able to panic if dates were validated before using this function.
         _ => panic!("Invalid month.")
     }
 }
 
 // calculate the fraction of the day
 fn day_fraction( hour: i32, minute: i32, second: i32 ) -> f64 {
-    assert!( hour >= 0 && hour < 24 );
-    assert!( minute >= 0 && minute < 60 );
-    assert!( second >= 0 && second < 60 );
+    // Asserts should not be an issue if times were validated before calling this function.
+    // Since this is private the module author controls validation before use.
+    debug_assert!( hour >= 0 && hour < 24 );
+    debug_assert!( minute >= 0 && minute < 60 );
+    debug_assert!( second >= 0 && second < 60 );
 
     (hour as f64 + ( minute as f64 + second as f64 / 60.0 ) / 60.0 ) / 24.0
 }
 
 // given the fraction of a day, calculate the hour-minutes-seconds
 fn to_hms( day_fraction: f64 ) -> (i32, i32, i32 ) {
-
-    assert!( day_fraction < 1.0 );
+    // Assert should not be an issue if times were validated before calling this function.
+    // Since this is private the module author controls validation before use.
+    debug_assert!( day_fraction < 1.0 );
 
     let mut remainder = day_fraction - f64::floor( day_fraction );
     let hour = f64::floor( remainder * 24.0 ) as i32;
@@ -678,7 +692,7 @@ mod tests {
     fn test_julian_day_zero() {
         assert!(
             AstroTmBldr::from_gregorian_utc( 2016, 12, 31, 0, 0, 0 ).build()
-            .unwrap() == julian_day_zero( 2017 )
+            .unwrap() == julian_day_zero( 2017 ).unwrap()
         );
     }
 
@@ -745,25 +759,42 @@ mod tests {
     }
 
     #[test]
+    fn test_is_valid_time() {
+        for hour in 0..24 {
+            for minute in 0..60 {
+                for second in 0..60 {
+                    assert!(is_valid_time(hour, minute, second));
+                }
+            }
+        }
+
+        assert!(!is_valid_time(-4,1,1));
+        assert!(!is_valid_time(4,-1,1));
+        assert!(!is_valid_time(4,1,-1));
+        assert!(!is_valid_time(24,1,1));
+        assert!(!is_valid_time(4,60,1));
+        assert!(!is_valid_time(4,1,60));
+    }
+
+    #[test]
     fn test_day_of_year_gregorian() {
-        assert!( day_of_year_gregorian( 1978, 11, 14 ) == 318 );
-        assert!( day_of_year_gregorian( 1988,  4, 22 ) == 113 );
+        assert!( day_of_year_gregorian( 1978, 11, 14 ).unwrap() == 318 );
+        assert!( day_of_year_gregorian( 1988,  4, 22 ).unwrap() == 113 );
     }
 
     #[test]
     fn test_month_and_day_gregorian() {
 
-        assert!( month_and_day_gregorian( 1978, 318 ) == ( 11, 14 ));
-        assert!( month_and_day_gregorian( 1988, 113 ) == (  4, 22 ));
+        assert!( month_and_day_gregorian( 1978, 318 ).unwrap() == ( 11, 14 ));
+        assert!( month_and_day_gregorian( 1988, 113 ).unwrap() == (  4, 22 ));
     }
 
     #[test]
     fn test_as_utc() {
         let a_dt = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 )
                     .dynamical_time().build().unwrap();
-        let as_utc = a_dt.as_utc();
-        let as_utc2 = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 )
-        .build().unwrap();
+        let as_utc = a_dt.as_utc().unwrap();
+        let as_utc2 = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 ).build().unwrap();
         assert!( approx_eq( as_utc.julian_day_number(), 
             as_utc2.julian_day_number(), 1.0e-5));
     }
@@ -773,7 +804,7 @@ mod tests {
         let a_utc = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 ).build().unwrap();
         let a_dt = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 )
                     .dynamical_time().build().unwrap();
-        let as_dt = a_utc.as_dt();
+        let as_dt = a_utc.as_dt().unwrap();
         
         assert!( approx_eq( as_dt.julian_day_number(), 
             a_dt.julian_day_number(), 1.0e-5));

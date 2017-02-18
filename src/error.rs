@@ -19,11 +19,14 @@ pub enum AstroAlgorithmsError {
     
     /// Invalid values supplied to a method or function for a Gregorian calendar
     /// date. For example, 29 Feb 2017 and 31 Apr 1981 are dates that do not
-    /// exist.
-    InvalidGregorianDate,
+    /// exist. Values are year, month, day.
+    InvalidGregorianDate(i32,i32,i32),
     
     /// Same as `InvalidGregorianDate`, but uses the Julian calendar.
-    InvalidJulianDate,
+    InvalidJulianDate(i32,i32,i32),
+
+    /// Invalid arguments used for a time. Values are hours, minutes, seconds
+    InvalidTime(i32,i32,i32),
 
     UnspecifiedError,
 }
