@@ -814,6 +814,13 @@ mod tests {
     fn test_day_of_year_gregorian() {
         assert!( day_of_year_gregorian( 1978, 11, 14 ).unwrap() == 318 );
         assert!( day_of_year_gregorian( 1988,  4, 22 ).unwrap() == 113 );
+
+        if let AstroAlgorithmsError::InvalidGregorianDate(year, month, day) = 
+        day_of_year_gregorian( 1988,  4, 31 ).unwrap_err() {
+            assert!(year == 1988 && month == 4 && day == 31);
+        } else {
+            panic!("Wrong error type returned.");
+        }
     }
 
     #[test]
@@ -821,6 +828,12 @@ mod tests {
 
         assert!( month_and_day_gregorian( 1978, 318 ).unwrap() == ( 11, 14 ));
         assert!( month_and_day_gregorian( 1988, 113 ).unwrap() == (  4, 22 ));
+        assert!( month_and_day_gregorian( 1988, 366 ).unwrap() == ( 12, 31 ));
+
+        if let AstroAlgorithmsError::InvalidGregorianDate(_, _, _) = 
+        month_and_day_gregorian( 1989,  366 ).unwrap_err() { } else {
+            panic!("Wrong error type returned.");
+        }
     }
 
     #[test]
