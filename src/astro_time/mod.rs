@@ -156,11 +156,25 @@ mod astro_tm_bldr_tests {
         let test_time = AstroTmBldr::from_raw( 110.0 ).build().unwrap();
         let jd = test_time.julian_day_number();
         assert!( jd == 110.0 );
+
+        let test_time = AstroTmBldr::from_raw( -110.0 ).build();
+        assert!( test_time.is_err());
+
+        if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(src, thresh)) =
+        test_time.unwrap_err() {
+            assert!(src == -110.0 );
+            assert!(thresh == 0.0 );
+        } else {
+            panic!("Wrong error type returned.");
+        }
     }
 
     #[test]
     fn test_from_gregorian_utc() {
 
+        //
+        // Test things that should work
+        //
         assert!( approx_eq(
             AstroTmBldr::from_gregorian_utc( -99, 3, 1, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
@@ -256,11 +270,50 @@ mod astro_tm_bldr_tests {
                 .build().unwrap().julian_day_number(), 
             1_356_001.0, 1.0e-15
         ));
+
+        assert!( approx_eq(
+            AstroTmBldr::from_gregorian_utc( -4713, 11, 24, 12, 0, 0 )
+                .build().unwrap().julian_day_number(), 
+            0.0, 1.0e-15
+        ));
+
+        //
+        // Test things that should fail
+        //
+        let test_time = AstroTmBldr::from_gregorian_utc( -4713, 11, 24, 11, 59, 59 ).build();
+        assert!( test_time.is_err());
+        if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(_, thresh)) =
+        test_time.unwrap_err() {
+            assert!(thresh == 0.0 );
+        } else {
+            panic!("Wrong error type returned.");
+        }
+
+        let test_time = AstroTmBldr::from_gregorian_utc( 1999, 2, 29, 11, 59, 59 ).build();
+        assert!( test_time.is_err());
+        if let AstroAlgorithmsError::InvalidGregorianDate(year, month, day) =
+        test_time.unwrap_err() {
+            assert!(year == 1999 && month == 2 && day == 29);
+        } else {
+            panic!("Wrong error type returned.");
+        }
+
+        let test_time = AstroTmBldr::from_gregorian_utc( 1999, 2, 28, 24, 59, 59 ).build();
+        assert!( test_time.is_err());
+        if let AstroAlgorithmsError::InvalidTime(hour, minute, second) =
+        test_time.unwrap_err() {
+            assert!(hour == 24 && minute == 59 && second == 59);
+        } else {
+            panic!("Wrong error type returned.");
+        }
     }
 
     #[test]
     fn test_from_julian_utc() {
-        
+
+        //
+        // Test things that should work
+        //
         assert!( approx_eq(
             AstroTmBldr::from_julian_utc( 1957, 9, 21, 19, 26, 24 )
                 .build().unwrap().julian_day_number(),
@@ -320,6 +373,36 @@ mod astro_tm_bldr_tests {
                 .build().unwrap().julian_day_number(),
             0.0, 1.0e-15
         ));
+
+        //
+        // Test things that should fail
+        //
+        let test_time = AstroTmBldr::from_julian_utc( -4712, 1, 1, 11, 59, 59 ).build();
+        assert!( test_time.is_err());
+        if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(_, thresh)) =
+        test_time.unwrap_err() {
+            assert!(thresh == 0.0 );
+        } else {
+            panic!("Wrong error type returned.");
+        }
+
+        let test_time = AstroTmBldr::from_julian_utc( 1999, 2, 29, 11, 59, 59 ).build();
+        assert!( test_time.is_err());
+        if let AstroAlgorithmsError::InvalidJulianDate(year, month, day) =
+        test_time.unwrap_err() {
+            assert!(year == 1999 && month == 2 && day == 29);
+        } else {
+            panic!("Wrong error type returned.");
+        }
+
+        let test_time = AstroTmBldr::from_julian_utc( 1999, 2, 28, 24, 59, 59 ).build();
+        assert!( test_time.is_err());
+        if let AstroAlgorithmsError::InvalidTime(hour, minute, second) =
+        test_time.unwrap_err() {
+            assert!(hour == 24 && minute == 59 && second == 59);
+        } else {
+            panic!("Wrong error type returned.");
+        }
     }
 }
 
