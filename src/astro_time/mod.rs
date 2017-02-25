@@ -29,19 +29,19 @@ pub enum TimeType {
 
 /// Builder for AstroTime
 #[derive(Debug)]
-pub struct AstroTmBldr {
+pub struct Builder {
     target: AstroResult<AstroTime>,
 }
 
-impl AstroTmBldr {
+impl Builder {
     /// Create an AstroTime from a Julian Day number.
     ///
     /// It defaults to `TimeType::UT`.
-    pub fn from_raw( raw: f64 ) -> AstroTmBldr {
+    pub fn from_raw( raw: f64 ) -> Builder {
         if raw >= 0.0 {
-            AstroTmBldr { target: Ok( AstroTime { julian_day: raw, time_type: TimeType::UT } ) }
+            Builder { target: Ok( AstroTime { julian_day: raw, time_type: TimeType::UT } ) }
         } else {
-            AstroTmBldr { target: Err( AstroAlgorithmsError::RangeError( 
+            Builder { target: Err( AstroAlgorithmsError::RangeError( 
                 DateRangeError::DateUnderflow( raw, 0.0 )
             ))}
         }
@@ -51,7 +51,7 @@ impl AstroTmBldr {
     ///
     /// It defaults to `TimeType::UT`.
     pub fn from_gregorian_utc( mut year: i32,  mut month: i32, day: i32, hour: i32, minute: i32, 
-        second: i32 ) -> AstroTmBldr {
+        second: i32 ) -> Builder {
         // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition by Jean Meeus.
         use std::f64;
 
@@ -73,19 +73,19 @@ impl AstroTmBldr {
                      f64::floor( 30.6001 * ( month + 1 ) as f64) + decimal_day + B - 1524.5;
 
             if jd >= 0.0 {
-                AstroTmBldr { target: Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } ) }
+                Builder { target: Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } ) }
             }
             else {
-                AstroTmBldr { target: Err( AstroAlgorithmsError::RangeError( 
+                Builder { target: Err( AstroAlgorithmsError::RangeError( 
                     DateRangeError::DateUnderflow( jd, 0.0 )
                 ))}
             }
         } else if !is_valid_gregorian(year, month, day) { 
-            AstroTmBldr { target: 
+            Builder { target: 
                 Err(AstroAlgorithmsError::InvalidGregorianDate(year, month, day)) 
             }
         } else {
-            AstroTmBldr { target: Err(AstroAlgorithmsError::InvalidTime(hour, minute, second)) }
+            Builder { target: Err(AstroAlgorithmsError::InvalidTime(hour, minute, second)) }
         }
     }
 
@@ -93,7 +93,7 @@ impl AstroTmBldr {
     ///
     /// It defaults to `TimeType::UT`.
     pub fn from_julian_utc( mut year: i32,  mut month: i32, day: i32, hour: i32, minute: i32, 
-        second: i32 ) -> AstroTmBldr {
+        second: i32 ) -> Builder {
         // From chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition by Jean Meeus.
         use std::f64;
 
@@ -110,17 +110,17 @@ impl AstroTmBldr {
                 f64::floor( 30.6001 * ( month + 1 ) as f64) + decimal_day - 1524.5;
 
             if jd >= 0.0 {
-                AstroTmBldr { target: Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } ) }
+                Builder { target: Ok( AstroTime{ julian_day: jd, time_type: TimeType::UT } ) }
             }
             else {
-                AstroTmBldr { target: Err( AstroAlgorithmsError::RangeError( 
+                Builder { target: Err( AstroAlgorithmsError::RangeError( 
                         DateRangeError::DateUnderflow( jd, 0.0 )
                 ))}
             }
         } else if !is_valid_julian(year, month, day) { 
-            AstroTmBldr { target: Err( AstroAlgorithmsError::InvalidJulianDate(year, month, day)) }
+            Builder { target: Err( AstroAlgorithmsError::InvalidJulianDate(year, month, day)) }
         } else {
-            AstroTmBldr { target: Err(AstroAlgorithmsError::InvalidTime(hour, minute, second)) }
+            Builder { target: Err(AstroAlgorithmsError::InvalidTime(hour, minute, second)) }
         }
     }
 
@@ -131,11 +131,11 @@ impl AstroTmBldr {
     ///
     /// Note that this DOES NOT DO ANY CONVERSION from UTC to dynamcial time using delta-t. It is
     /// only for specifying a dynamical time while building.
-    pub fn dynamical_time( self ) -> AstroTmBldr {
+    pub fn dynamical_time( self ) -> Builder {
         match self.target {
             Ok(mut atime ) => {
                 atime.time_type = TimeType::DT;
-                AstroTmBldr{ target: Ok( atime ) }
+                Builder{ target: Ok( atime ) }
             }
             _ => self, // do nothing
         }
@@ -153,11 +153,11 @@ mod astro_tm_bldr_tests {
 
     #[test]
     fn test_from_raw() {
-        let test_time = AstroTmBldr::from_raw( 110.0 ).build().unwrap();
+        let test_time = Builder::from_raw( 110.0 ).build().unwrap();
         let jd = test_time.julian_day_number();
         assert!( jd == 110.0 );
 
-        let test_time = AstroTmBldr::from_raw( -110.0 ).build();
+        let test_time = Builder::from_raw( -110.0 ).build();
         assert!( test_time.is_err());
 
         if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(src, thresh)) =
@@ -176,103 +176,103 @@ mod astro_tm_bldr_tests {
         // Test things that should work
         //
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( -99, 3, 1, 0, 0, 0 )
+            Builder::from_gregorian_utc( -99, 3, 1, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             1_684_959.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1957, 10, 4, 19, 26, 24 )
+            Builder::from_gregorian_utc( 1957, 10, 4, 19, 26, 24 )
                 .build().unwrap().julian_day_number(), 
             2_436_116.31, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 2000, 1, 1, 12, 0, 0 )
+            Builder::from_gregorian_utc( 2000, 1, 1, 12, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_451_545.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1999, 1, 1, 0, 0, 0 )
+            Builder::from_gregorian_utc( 1999, 1, 1, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_451_179.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1987, 1, 27, 0, 0, 0 )
+            Builder::from_gregorian_utc( 1987, 1, 27, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_446_822.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1987, 6, 19, 12, 0, 0 )
+            Builder::from_gregorian_utc( 1987, 6, 19, 12, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_446_966.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1988, 1, 27, 0, 0, 0 )
+            Builder::from_gregorian_utc( 1988, 1, 27, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_447_187.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1988, 6, 19, 12, 0, 0 )
+            Builder::from_gregorian_utc( 1988, 6, 19, 12, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_447_332.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1900, 1, 1, 0, 0, 0 )
+            Builder::from_gregorian_utc( 1900, 1, 1, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_415_020.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1600, 1, 1, 0, 0, 0 )
+            Builder::from_gregorian_utc( 1600, 1, 1, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_305_447.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1600, 12, 31, 0, 0, 0 )
+            Builder::from_gregorian_utc( 1600, 12, 31, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             2_305_812.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 837, 4, 14, 7, 12, 0 )
+            Builder::from_gregorian_utc( 837, 4, 14, 7, 12, 0 )
                 .build().unwrap().julian_day_number(), 
             2_026_871.8, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( -123, 12, 28, 0, 0, 0 )
+            Builder::from_gregorian_utc( -123, 12, 28, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             1_676_496.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( -123, 12, 29, 0, 0, 0 )
+            Builder::from_gregorian_utc( -123, 12, 29, 0, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             1_676_497.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( -200, 7, 2, 12, 0, 0 )
+            Builder::from_gregorian_utc( -200, 7, 2, 12, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             1_648_194.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( -1000, 7, 3, 12, 0, 0 )
+            Builder::from_gregorian_utc( -1000, 7, 3, 12, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             1_356_001.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( -4713, 11, 24, 12, 0, 0 )
+            Builder::from_gregorian_utc( -4713, 11, 24, 12, 0, 0 )
                 .build().unwrap().julian_day_number(), 
             0.0, 1.0e-15
         ));
@@ -280,7 +280,7 @@ mod astro_tm_bldr_tests {
         //
         // Test things that should fail
         //
-        let test_time = AstroTmBldr::from_gregorian_utc( -4713, 11, 24, 11, 59, 59 ).build();
+        let test_time = Builder::from_gregorian_utc( -4713, 11, 24, 11, 59, 59 ).build();
         assert!( test_time.is_err());
         if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(_, thresh)) =
         test_time.unwrap_err() {
@@ -289,7 +289,7 @@ mod astro_tm_bldr_tests {
             panic!("Wrong error type returned.");
         }
 
-        let test_time = AstroTmBldr::from_gregorian_utc( 1999, 2, 29, 11, 59, 59 ).build();
+        let test_time = Builder::from_gregorian_utc( 1999, 2, 29, 11, 59, 59 ).build();
         assert!( test_time.is_err());
         if let AstroAlgorithmsError::InvalidGregorianDate(year, month, day) =
         test_time.unwrap_err() {
@@ -298,7 +298,7 @@ mod astro_tm_bldr_tests {
             panic!("Wrong error type returned.");
         }
 
-        let test_time = AstroTmBldr::from_gregorian_utc( 1999, 2, 28, 24, 59, 59 ).build();
+        let test_time = Builder::from_gregorian_utc( 1999, 2, 28, 24, 59, 59 ).build();
         assert!( test_time.is_err());
         if let AstroAlgorithmsError::InvalidTime(hour, minute, second) =
         test_time.unwrap_err() {
@@ -315,61 +315,61 @@ mod astro_tm_bldr_tests {
         // Test things that should work
         //
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( 1957, 9, 21, 19, 26, 24 )
+            Builder::from_julian_utc( 1957, 9, 21, 19, 26, 24 )
                 .build().unwrap().julian_day_number(),
             2_436_116.31, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( 1999, 12, 19, 12, 0, 0 )
+            Builder::from_julian_utc( 1999, 12, 19, 12, 0, 0 )
                 .build().unwrap().julian_day_number(),
             2_451_545.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( 1998, 12, 19, 0, 0, 0 )
+            Builder::from_julian_utc( 1998, 12, 19, 0, 0, 0 )
                 .build().unwrap().julian_day_number(),
             2_451_179.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( 837, 4, 10, 7, 12, 0 )
+            Builder::from_julian_utc( 837, 4, 10, 7, 12, 0 )
                 .build().unwrap().julian_day_number(),
             2_026_871.8, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( -123, 12, 31, 0, 0, 0 )
+            Builder::from_julian_utc( -123, 12, 31, 0, 0, 0 )
                 .build().unwrap().julian_day_number(),
             1_676_496.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( -122, 1, 1, 0, 0, 0 )
+            Builder::from_julian_utc( -122, 1, 1, 0, 0, 0 )
                 .build().unwrap().julian_day_number(),
             1_676_497.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( -1000, 7, 12, 12, 0, 0 )
+            Builder::from_julian_utc( -1000, 7, 12, 12, 0, 0 )
                 .build().unwrap().julian_day_number(),
             1_356_001.0, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( -1000, 2, 29, 0, 0, 0 )
+            Builder::from_julian_utc( -1000, 2, 29, 0, 0, 0 )
                 .build().unwrap().julian_day_number(),
             1_355_866.5, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( -1001, 8, 17, 21, 36, 0 )
+            Builder::from_julian_utc( -1001, 8, 17, 21, 36, 0 )
                 .build().unwrap().julian_day_number(),
             1_355_671.4, 1.0e-15
         ));
 
         assert!( approx_eq(
-            AstroTmBldr::from_julian_utc( -4712, 1, 1, 12, 0, 0 )
+            Builder::from_julian_utc( -4712, 1, 1, 12, 0, 0 )
                 .build().unwrap().julian_day_number(),
             0.0, 1.0e-15
         ));
@@ -377,7 +377,7 @@ mod astro_tm_bldr_tests {
         //
         // Test things that should fail
         //
-        let test_time = AstroTmBldr::from_julian_utc( -4712, 1, 1, 11, 59, 59 ).build();
+        let test_time = Builder::from_julian_utc( -4712, 1, 1, 11, 59, 59 ).build();
         assert!( test_time.is_err());
         if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(_, thresh)) =
         test_time.unwrap_err() {
@@ -386,7 +386,7 @@ mod astro_tm_bldr_tests {
             panic!("Wrong error type returned.");
         }
 
-        let test_time = AstroTmBldr::from_julian_utc( 1999, 2, 29, 11, 59, 59 ).build();
+        let test_time = Builder::from_julian_utc( 1999, 2, 29, 11, 59, 59 ).build();
         assert!( test_time.is_err());
         if let AstroAlgorithmsError::InvalidJulianDate(year, month, day) =
         test_time.unwrap_err() {
@@ -395,7 +395,7 @@ mod astro_tm_bldr_tests {
             panic!("Wrong error type returned.");
         }
 
-        let test_time = AstroTmBldr::from_julian_utc( 1999, 2, 28, 24, 59, 59 ).build();
+        let test_time = Builder::from_julian_utc( 1999, 2, 28, 24, 59, 59 ).build();
         assert!( test_time.is_err());
         if let AstroAlgorithmsError::InvalidTime(hour, minute, second) =
         test_time.unwrap_err() {
@@ -452,8 +452,8 @@ impl AstroTime {
     /// # Examples
     ///
     /// ```
-    /// # use astro_calc::astro_time::AstroTmBldr;
-    /// let a_date = AstroTmBldr::from_gregorian_utc( 2017, 2, 11, 19, 58, 5).build().unwrap();
+    /// # use astro_calc::astro_time::Builder;
+    /// let a_date = Builder::from_gregorian_utc( 2017, 2, 11, 19, 58, 5).build().unwrap();
     /// let (year, month, day, hour, minute, second) = a_date.to_gregorian_utc();
     /// assert!( year == 2017 );
     /// assert!( month == 2 );
@@ -499,11 +499,11 @@ impl AstroTime {
     /// into the library.
     pub fn as_utc( &self ) -> AstroResult<AstroTime> {
         if self.time_type == TimeType::UT {
-            AstroTmBldr::from_raw( self.julian_day ).build()
+            Builder::from_raw( self.julian_day ).build()
         }
         else {
             let dt = self.get_delta_t();
-            AstroTmBldr::from_raw( self.julian_day - dt ).build()
+            Builder::from_raw( self.julian_day - dt ).build()
         }
     }
 
@@ -516,11 +516,11 @@ impl AstroTime {
     /// into the library.
     pub fn as_dt( &self ) -> AstroResult<AstroTime> {
         if self.time_type == TimeType::DT {
-            AstroTmBldr::from_raw( self.julian_day ).dynamical_time().build()
+            Builder::from_raw( self.julian_day ).dynamical_time().build()
         }
         else {
             let dt = self.get_delta_t();
-            AstroTmBldr::from_raw( self.julian_day + dt ).dynamical_time().build()
+            Builder::from_raw( self.julian_day + dt ).dynamical_time().build()
         }
     }
 
@@ -558,11 +558,11 @@ impl AstroTime {
             // Algorithm adapted from chapter 10, pages 78-80 of Astronomical 
             // Algorithms,  2nd Edition by Jean Meeus.
             let t: f64 = ( self.julian_day - 
-                AstroTmBldr::from_gregorian_utc( 2000, 1, 1, 0, 0, 0 ).build()
+                Builder::from_gregorian_utc( 2000, 1, 1, 0, 0, 0 ).build()
                 .unwrap().julian_day ) / 36524.25;
 
             if self.julian_day < 
-            AstroTmBldr::from_gregorian_utc( 948, 1, 1, 0, 0, 0 ).build().unwrap().julian_day {
+            Builder::from_gregorian_utc( 948, 1, 1, 0, 0, 0 ).build().unwrap().julian_day {
                 ( 2177.0 + 497.0 * t + 44.1 * t * t ) / 86_400.0
             } else {
                 // Year must not be in table or before 948
@@ -578,7 +578,7 @@ mod astro_time_tests {
     #[test]
     fn test_modified_julian_day_number() {
         assert!( approx_eq(
-            AstroTmBldr::from_gregorian_utc( 1858, 11, 17, 0, 0, 0 )
+            Builder::from_gregorian_utc( 1858, 11, 17, 0, 0, 0 )
                 .build().unwrap().modified_julian_day_number(),
             0.0, 1.0e-15
         ));
@@ -587,43 +587,43 @@ mod astro_time_tests {
     #[test]
     fn test_to_gregorian_utc(){
 
-        assert!( AstroTmBldr::from_raw( 2_436_116.31 ).build().unwrap() 
+        assert!( Builder::from_raw( 2_436_116.31 ).build().unwrap() 
             .to_gregorian_utc() == (1957, 10, 4, 19, 26, 24));
         
-        assert!( AstroTmBldr::from_raw( 2_451_545.0 ).build().unwrap() 
+        assert!( Builder::from_raw( 2_451_545.0 ).build().unwrap() 
             .to_gregorian_utc() == (2000, 1, 1, 12, 0, 0));
 
 
-        assert!( AstroTmBldr::from_raw( 1_676_497.5 ).build().unwrap() 
+        assert!( Builder::from_raw( 1_676_497.5 ).build().unwrap() 
             .to_gregorian_utc() == ( -123, 12, 29, 0, 0, 0 ));
 
-        assert!( AstroTmBldr::from_gregorian_utc( -123, 12, 29, 0, 0, 0 ).build().unwrap()
+        assert!( Builder::from_gregorian_utc( -123, 12, 29, 0, 0, 0 ).build().unwrap()
             .to_gregorian_utc() == ( -123, 12, 29, 0, 0, 0 ));
 
-        assert!( AstroTmBldr::from_gregorian_utc( -2300, 6, 12, 19, 23, 14 ).build().unwrap()
+        assert!( Builder::from_gregorian_utc( -2300, 6, 12, 19, 23, 14 ).build().unwrap()
             .to_gregorian_utc() == ( -2300, 6, 12, 19, 23, 14 ));
 
-        assert!( AstroTmBldr::from_raw( 1_356_001.25 ).build().unwrap() 
+        assert!( Builder::from_raw( 1_356_001.25 ).build().unwrap() 
             .to_gregorian_utc() == ( -1000, 7, 3, 18, 0, 0 ));
 
-        assert!( AstroTmBldr::from_raw( 1_356_001.0 ).build().unwrap() 
+        assert!( Builder::from_raw( 1_356_001.0 ).build().unwrap() 
             .to_gregorian_utc() == ( -1000, 7, 3, 12, 0, 0 ));
     }
 
     #[test]
     fn test_as_utc() {
-        let a_dt = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 )
+        let a_dt = Builder::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 )
                     .dynamical_time().build().unwrap();
         let as_utc = a_dt.as_utc().unwrap();
-        let as_utc2 = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 ).build().unwrap();
+        let as_utc2 = Builder::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 ).build().unwrap();
         assert!( approx_eq( as_utc.julian_day_number(), 
             as_utc2.julian_day_number(), 1.0e-5));
     }
 
     #[test]
     fn test_as_dt() {
-        let a_utc = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 ).build().unwrap();
-        let a_dt = AstroTmBldr::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 )
+        let a_utc = Builder::from_gregorian_utc( 1977, 2, 18, 3, 36, 52 ).build().unwrap();
+        let a_dt = Builder::from_gregorian_utc( 1977, 2, 18, 3, 37, 40 )
                     .dynamical_time().build().unwrap();
         let as_dt = a_utc.as_dt().unwrap();
         
@@ -649,7 +649,7 @@ pub fn julian_day_zero( year: i32 ) -> AstroResult<AstroTime> {
     let y = (year - 1) as f64;
     let a = f64::floor( y / 100.0 );
 
-    AstroTmBldr::from_raw(f64::floor(365.25 * y) - a + f64::floor(a / 4.0) + 1_721_424.5).build()
+    Builder::from_raw(f64::floor(365.25 * y) - a + f64::floor(a / 4.0) + 1_721_424.5).build()
 }
 
 /// Calculate the day of the year in the Gregorian Calendar
@@ -805,7 +805,7 @@ mod tests {
     #[test]
     fn test_julian_day_zero() {
         assert!(
-            AstroTmBldr::from_gregorian_utc( 2016, 12, 31, 0, 0, 0 ).build()
+            Builder::from_gregorian_utc( 2016, 12, 31, 0, 0, 0 ).build()
             .unwrap() == julian_day_zero( 2017 ).unwrap()
         );
     }
@@ -915,5 +915,4 @@ mod tests {
         assert!(!is_valid_time(4,60,1));
         assert!(!is_valid_time(4,1,60));
     }
-
 }

@@ -10,7 +10,7 @@
 //! License: [BSD 3-clause](https://opensource.org/licenses/BSD-3-Clause)
 //!
 
-use super::AstroTmBldr;
+use super::Builder;
 
 lazy_static! {
     pub static ref TIME_DELTA: Vec<(f64,f64)> = { 
@@ -753,7 +753,7 @@ lazy_static! {
 
         for ( year, month, day, delta_t ) in time_delta_date_list {
 
-            let jd = AstroTmBldr::from_gregorian_utc( year, month, day, 0, 0, 0)
+            let jd = Builder::from_gregorian_utc( year, month, day, 0, 0, 0)
             .build();
 
             match jd {
