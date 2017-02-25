@@ -37,7 +37,7 @@ impl Builder {
     /// Create an AstroTime from a Julian Day number.
     ///
     /// It defaults to `TimeType::UT`.
-    pub fn from_raw( raw: f64 ) -> Builder {
+    pub fn from_julian_date( raw: f64 ) -> Builder {
         if raw >= 0.0 {
             Builder { target: Ok( AstroTime { julian_day: raw, time_type: TimeType::UT } ) }
         } else {
@@ -152,12 +152,12 @@ mod astro_tm_bldr_tests {
     use astro_time::*;
 
     #[test]
-    fn test_from_raw() {
-        let test_time = Builder::from_raw( 110.0 ).build().unwrap();
+    fn test_from_julian_date() {
+        let test_time = Builder::from_julian_date( 110.0 ).build().unwrap();
         let jd = test_time.julian_day_number();
         assert!( jd == 110.0 );
 
-        let test_time = Builder::from_raw( -110.0 ).build();
+        let test_time = Builder::from_julian_date( -110.0 ).build();
         assert!( test_time.is_err());
 
         if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(src, thresh)) =
@@ -499,11 +499,11 @@ impl AstroTime {
     /// into the library.
     pub fn as_utc( &self ) -> AstroResult<AstroTime> {
         if self.time_type == TimeType::UT {
-            Builder::from_raw( self.julian_day ).build()
+            Builder::from_julian_date( self.julian_day ).build()
         }
         else {
             let dt = self.get_delta_t();
-            Builder::from_raw( self.julian_day - dt ).build()
+            Builder::from_julian_date( self.julian_day - dt ).build()
         }
     }
 
@@ -516,11 +516,11 @@ impl AstroTime {
     /// into the library.
     pub fn as_dt( &self ) -> AstroResult<AstroTime> {
         if self.time_type == TimeType::DT {
-            Builder::from_raw( self.julian_day ).dynamical_time().build()
+            Builder::from_julian_date( self.julian_day ).dynamical_time().build()
         }
         else {
             let dt = self.get_delta_t();
-            Builder::from_raw( self.julian_day + dt ).dynamical_time().build()
+            Builder::from_julian_date( self.julian_day + dt ).dynamical_time().build()
         }
     }
 
@@ -587,14 +587,14 @@ mod astro_time_tests {
     #[test]
     fn test_to_gregorian_utc(){
 
-        assert!( Builder::from_raw( 2_436_116.31 ).build().unwrap() 
+        assert!( Builder::from_julian_date( 2_436_116.31 ).build().unwrap() 
             .to_gregorian_utc() == (1957, 10, 4, 19, 26, 24));
         
-        assert!( Builder::from_raw( 2_451_545.0 ).build().unwrap() 
+        assert!( Builder::from_julian_date( 2_451_545.0 ).build().unwrap() 
             .to_gregorian_utc() == (2000, 1, 1, 12, 0, 0));
 
 
-        assert!( Builder::from_raw( 1_676_497.5 ).build().unwrap() 
+        assert!( Builder::from_julian_date( 1_676_497.5 ).build().unwrap() 
             .to_gregorian_utc() == ( -123, 12, 29, 0, 0, 0 ));
 
         assert!( Builder::from_gregorian_utc( -123, 12, 29, 0, 0, 0 ).build().unwrap()
@@ -603,10 +603,10 @@ mod astro_time_tests {
         assert!( Builder::from_gregorian_utc( -2300, 6, 12, 19, 23, 14 ).build().unwrap()
             .to_gregorian_utc() == ( -2300, 6, 12, 19, 23, 14 ));
 
-        assert!( Builder::from_raw( 1_356_001.25 ).build().unwrap() 
+        assert!( Builder::from_julian_date( 1_356_001.25 ).build().unwrap() 
             .to_gregorian_utc() == ( -1000, 7, 3, 18, 0, 0 ));
 
-        assert!( Builder::from_raw( 1_356_001.0 ).build().unwrap() 
+        assert!( Builder::from_julian_date( 1_356_001.0 ).build().unwrap() 
             .to_gregorian_utc() == ( -1000, 7, 3, 12, 0, 0 ));
     }
 
@@ -649,7 +649,7 @@ pub fn julian_day_zero( year: i32 ) -> AstroResult<AstroTime> {
     let y = (year - 1) as f64;
     let a = f64::floor( y / 100.0 );
 
-    Builder::from_raw(f64::floor(365.25 * y) - a + f64::floor(a / 4.0) + 1_721_424.5).build()
+    Builder::from_julian_date(f64::floor(365.25 * y) - a + f64::floor(a / 4.0) + 1_721_424.5).build()
 }
 
 /// Calculate the day of the year in the Gregorian Calendar
