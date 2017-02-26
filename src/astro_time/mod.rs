@@ -462,6 +462,7 @@ impl AstroTime {
     /// assert!( minute == 58 );
     /// assert!( second == 5 );
     /// ```
+    // TODO create a simple datetime type and return it.
     pub fn to_gregorian_utc( &self ) -> ( i32, i32, i32, i32, i32, i32 ) {
         // Adapted from chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition 
         // by Jean Meeus.
@@ -507,7 +508,7 @@ impl AstroTime {
         }
     }
 
-    // Whatever time type (dynamical or UTC) create a copy in dynamical time by applying an
+    /// Whatever time type (dynamical or UTC) create a copy in dynamical time by applying an
     /// *_approximate_* conversion. This can be wildly inaccurate for years before 1620 and years
     /// after 2017. Future dates use a forecasted correction value, which is very hard to predict.
     ///
@@ -522,6 +523,30 @@ impl AstroTime {
             let dt = self.get_delta_t();
             Builder::from_julian_date( self.julian_day + dt ).dynamical_time().build()
         }
+    }
+
+    /// Get the sidereal time at Greenwich.
+    ///
+    /// Returns the sidereal time in decimal degrees.
+    // TODO - return some generalized angle/time type.
+    pub fn sidereal_greenwich( &self ) -> f64 {
+        // Chapter 12 of Astronomical Algorithms 2nd ed. By Jean Meeus.
+        use std::f64;
+
+        let jd0 = f64::floor( self.julian_day + 0.5 ) - 0.5;
+        let t = ( jd0 - 2_451_545.0 ) / 36_525.0;
+        let mut theta_0 = 280.460_618_37 + 360.985_647_366_29 * ( self.julian_day - 2_451_545.0 ) +
+                        t * t * ( 0.000_387_933 - t / 38_710_000.0 );
+
+        while theta_0 < 0.0 {
+            theta_0 += 360.0;
+        }
+
+        while theta_0 >= 360.0 {
+            theta_0 -= 360.0;
+        }
+
+        theta_0
     }
 
     // Calculate the delta-t value for applying a conversion between unversal 
@@ -629,6 +654,15 @@ mod astro_time_tests {
         
         assert!( approx_eq( as_dt.julian_day_number(), 
             a_dt.julian_day_number(), 1.0e-5));
+    }
+
+    #[test]
+    fn test_sidereal_greenwich() {
+        assert!( approx_eq(
+            Builder::from_gregorian_utc( 1987, 4, 10, 19, 21, 0 )
+                .build().unwrap().sidereal_greenwich(),
+            128.737_873_4, 1.0e-6
+        ));
     }
 }
 
@@ -776,6 +810,7 @@ fn day_fraction( hour: i32, minute: i32, second: i32 ) -> f64 {
 }
 
 // given the fraction of a day, calculate the hour-minutes-seconds
+// TODO return some generalized time type.
 fn to_hms( day_fraction: f64 ) -> (i32, i32, i32 ) {
     // Assert should not be an issue if times were validated before calling this function.
     // Since this is private the module author controls validation before use.
