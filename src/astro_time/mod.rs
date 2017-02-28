@@ -147,6 +147,7 @@ impl Builder {
     }
         
 }
+
 #[cfg(test)]
 mod astro_tm_bldr_tests {
     use astro_time::*;
@@ -596,6 +597,7 @@ impl AstroTime {
         }
     }
 }
+
 #[cfg(test)]
 mod astro_time_tests {
     use astro_time::*;
