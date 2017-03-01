@@ -7,14 +7,20 @@
 //!
 //! License: [BSD 3-clause](https://opensource.org/licenses/BSD-3-Clause)
 //!
+//! Most internal calculations will be done using the RadianAngle type, since
+//! most computer functions work with radians. The other types are mainly there
+//! for ease of use and formatting with input and output.
+//!
 //! TODO
-//!  - [ ] Factor out common functions, there is a lot of repeated code
-//!  - [ ] Use is_sign_positive to force DMS to all have the same sign.
+//!  - [ ] Factor out common functions, there is a lot of repeated code in From traits
+//!  - [ ] Use constructors in from and force wrapping?
 //!  - [ ] Do not allow negative HMS
-//!  - [ ] Constructors
 //!  - [ ] Unittests for both positive and negative angles.
+//!  - [ ] Implement `Display` for each of the structs.
 //!  - [ ] Documentation comments
 use std::convert::From;
+
+use super::super::error::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct RadianAngle {
@@ -41,16 +47,85 @@ pub struct HMSAngle {
 }
 
 /// Common interface for all angle types.
-trait Angle
+pub trait AngleTrait
     : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> {
     // TODO
-    // Setters.
+    // Getters for each format.
 }
 
-impl Angle for RadianAngle {}
-impl Angle for DegreeAngle {}
-impl Angle for DMSAngle {}
-impl Angle for HMSAngle {}
+impl AngleTrait for RadianAngle {}
+impl AngleTrait for DegreeAngle {}
+impl AngleTrait for DMSAngle {}
+impl AngleTrait for HMSAngle {}
+
+impl RadianAngle {
+    /// Create a new angle using radians.
+    pub fn new(radians: f64)-> AstroResult<RadianAngle>{
+        if radians.is_nan() {
+            Err(AstroAlgorithmsError::EncounteredNaN)
+        } else if radians.is_infinite() {
+            Err(AstroAlgorithmsError::EncounteredInf)
+        } else {
+            Ok(RadianAngle{radians: radians })
+        }
+    }
+}
+
+impl DegreeAngle {
+    /// Create a new angle using degrees.
+    pub fn new(degrees: f64)-> AstroResult<DegreeAngle>{
+        if degrees.is_nan() {
+            Err(AstroAlgorithmsError::EncounteredNaN)
+        } else if degrees.is_infinite() {
+            Err(AstroAlgorithmsError::EncounteredInf)
+        } else {
+            Ok(DegreeAngle{degrees: degrees })
+        }
+    }
+}
+
+impl DMSAngle {
+    /// Create a new angle using degrees, minutes, seconds.
+    pub fn new(degrees: i32, mut minutes: i32, mut seconds: f64)-> AstroResult<DMSAngle>{
+        if degrees.is_negative() {
+            if minutes.is_positive() {
+                minutes *= -1;
+            }
+            if seconds.is_sign_positive() {
+                seconds *= -1.0;
+            }
+        } else {
+            if minutes.is_negative() {
+                minutes *= -1;
+            }
+            if seconds.is_sign_negative() {
+                seconds *= -1.0;
+            }
+        }
+        if seconds.is_nan() {
+            Err(AstroAlgorithmsError::EncounteredNaN)
+        } else if seconds.is_infinite() {
+            Err(AstroAlgorithmsError::EncounteredInf)
+        } else {
+            Ok(DMSAngle{degrees: degrees, minutes: minutes, seconds: seconds })
+        }
+    }
+}
+
+impl HMSAngle {
+    /// Create a new angle using hours, minutes, seconds.
+    pub fn new(hours: i32, mut minutes: i32, mut seconds: f64)-> AstroResult<HMSAngle>{
+        if seconds.is_nan() {
+            Err(AstroAlgorithmsError::EncounteredNaN)
+        } else if seconds.is_infinite() {
+            Err(AstroAlgorithmsError::EncounteredInf)
+        } else if hours.is_negative() || minutes.is_negative() || seconds.is_sign_negative() {
+            Err(AstroAlgorithmsError::EncounteredInappropriateNegativeValue)
+        } else {
+            Ok(HMSAngle{hours: hours, minutes: minutes, seconds: seconds })
+        }
+    }
+}
 
 impl From<DegreeAngle> for RadianAngle {
     fn from(degrees: DegreeAngle) -> Self {
@@ -104,7 +179,6 @@ impl From<RadianAngle> for DMSAngle {
         }
     }
 }
-
 impl From<DegreeAngle> for DMSAngle {
     fn from(decimal_degrees: DegreeAngle) -> Self {
         let degrees = decimal_degrees.degrees.trunc();
@@ -120,7 +194,6 @@ impl From<DegreeAngle> for DMSAngle {
         }
     }
 }
-
 impl From<HMSAngle> for DMSAngle {
     fn from(hms: HMSAngle) -> Self {
         let decimal_degrees = (hms.hours * 15) as f64 + (60 * hms.minutes) as f64 +
@@ -155,7 +228,6 @@ impl From<RadianAngle> for HMSAngle {
         }
     }
 }
-
 impl From<DegreeAngle> for HMSAngle {
     fn from(decimal_degrees: DegreeAngle) -> Self {
         let hours = (decimal_degrees.degrees / 15.0).trunc();
@@ -171,7 +243,6 @@ impl From<DegreeAngle> for HMSAngle {
         }
     }
 }
-
 impl From<DMSAngle> for HMSAngle {
     fn from(dms: DMSAngle) -> Self {
         let decimal_degrees = dms.degrees as f64 + (dms.minutes * 60) as f64 + 3600.0 * dms.seconds;
@@ -187,4 +258,9 @@ impl From<DMSAngle> for HMSAngle {
             seconds: seconds.abs(),
         }
     }
+}
+
+#[cfg(test)]
+mod angles_tests {
+
 }

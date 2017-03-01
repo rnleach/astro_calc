@@ -27,6 +27,21 @@ pub enum AstroAlgorithmsError {
     /// Invalid arguments used for a time. Values are hours, minutes, seconds
     InvalidTime(i32, i32, i32),
 
+    /// Invalid angle. Some algorithms and types put restrictions on the allowed
+    /// ranges for angles, the string should provide more context.
+    InvalidAngle(String),
+
+    /// Aborted due to encountering a NaN (Not a Number) with floating point 
+    /// numbers.
+    EncounteredNaN,
+
+    /// Aborted due to encountering infinite value in floating point numbers.
+    EncounteredInf,
+
+    /// Negative numbers are not allowed everywhere, so sometimes you have to
+    /// abort if they are encountered.
+    EncounteredInappropriateNegativeValue,
+
     UnspecifiedError,
 }
 
