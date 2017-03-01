@@ -20,3 +20,4 @@ extern crate lazy_static;
 // Public export modules
 pub mod error;
 pub mod astro_time;
+pub mod coords;
