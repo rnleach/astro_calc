@@ -47,14 +47,14 @@ pub struct HMSAngle {
 }
 
 /// Common interface for all angle types.
-pub trait AngleTrait
+pub trait Angle
     : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> 
     + From<HMSAngle> + fmt::Display {}
 
-impl AngleTrait for RadianAngle {}
-impl AngleTrait for DegreeAngle {}
-impl AngleTrait for DMSAngle {}
-impl AngleTrait for HMSAngle {}
+impl Angle for RadianAngle {}
+impl Angle for DegreeAngle {}
+impl Angle for DMSAngle {}
+impl Angle for HMSAngle {}
 
 impl RadianAngle {
     /// Create a new angle using radians.
