@@ -12,26 +12,25 @@
 //! for ease of use and formatting with input and output.
 //!
 //! TODO
-//!  - [ ] Factor out common functions, there is a lot of repeated code in From traits
-//!  - [ ] Use constructors in from and force wrapping?
-//!  - [ ] Do not allow negative HMS
 //!  - [ ] Unittests for both positive and negative angles.
-//!  - [ ] Implement `Display` for each of the structs.
-//!  - [ ] Documentation comments
 use std::convert::From;
+use std::fmt;
 
 use super::super::error::*;
 
+/// Represent an angle in radians.
 #[derive(Debug, Clone, Copy)]
 pub struct RadianAngle {
     radians: f64,
 }
 
+/// Represent an angle in decimal degrees.
 #[derive(Debug, Clone, Copy)]
 pub struct DegreeAngle {
     degrees: f64,
 }
 
+/// Represent an angle as degrees, minutes, and decimal seconds.
 #[derive(Debug, Clone, Copy)]
 pub struct DMSAngle {
     degrees: i32,
@@ -39,6 +38,9 @@ pub struct DMSAngle {
     seconds: f64,
 }
 
+/// Represent an angle in hours, minutes, and seconds.
+///
+/// This type is forced to be between 0h and 24 hours.
 #[derive(Debug, Clone, Copy)]
 pub struct HMSAngle {
     hours: i32,
@@ -48,7 +50,7 @@ pub struct HMSAngle {
 
 /// Common interface for all angle types.
 pub trait AngleTrait
-    : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> {
+    : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> + fmt::Display {
     // TODO
     // Getters for each format.
 }
@@ -114,16 +116,42 @@ impl DMSAngle {
 
 impl HMSAngle {
     /// Create a new angle using hours, minutes, seconds.
-    pub fn new(hours: i32, mut minutes: i32, mut seconds: f64)-> AstroResult<HMSAngle>{
+    pub fn new(hours: i32, minutes: i32, seconds: f64)-> AstroResult<HMSAngle>{
         if seconds.is_nan() {
             Err(AstroAlgorithmsError::EncounteredNaN)
         } else if seconds.is_infinite() {
             Err(AstroAlgorithmsError::EncounteredInf)
         } else if hours.is_negative() || minutes.is_negative() || seconds.is_sign_negative() {
             Err(AstroAlgorithmsError::EncounteredInappropriateNegativeValue)
+        } else if hours > 23 {
+            Err(AstroAlgorithmsError::InvalidAngle("Hour limited to range [0,24)".to_owned()))
         } else {
             Ok(HMSAngle{hours: hours, minutes: minutes, seconds: seconds })
         }
+    }
+}
+
+impl fmt::Display for RadianAngle {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} radians", self.radians)
+    }
+}
+
+impl fmt::Display for DegreeAngle {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}\u{00B0}", self.degrees)
+    }
+}
+
+impl fmt::Display for DMSAngle {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}\u{00B0} {}\' {}\"", self.degrees, self.minutes, self.seconds)
+    }
+}
+
+impl fmt::Display for HMSAngle {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}h {}m {}s", self.hours, self.minutes, self.seconds)
     }
 }
 
@@ -214,7 +242,11 @@ impl From<HMSAngle> for DMSAngle {
 
 impl From<RadianAngle> for HMSAngle {
     fn from(radians: RadianAngle) -> Self {
-        let decimal_degrees = radians.radians.to_degrees();
+        let mut decimal_degrees = radians.radians.to_degrees();
+
+        // Force it to be between 0 and 360 degrees
+        decimal_degrees = map_to_branch(decimal_degrees, 0.0, 360.0);
+        
         let hours = (decimal_degrees / 15.0).trunc();
         let mut remainder = decimal_degrees - (hours * 15.0);
         let minutes = (remainder * 60.0).trunc();
@@ -223,15 +255,16 @@ impl From<RadianAngle> for HMSAngle {
 
         HMSAngle {
             hours: hours as i32,
-            minutes: minutes.abs() as i32,
-            seconds: seconds.abs(),
+            minutes: minutes as i32,
+            seconds: seconds,
         }
     }
 }
 impl From<DegreeAngle> for HMSAngle {
-    fn from(decimal_degrees: DegreeAngle) -> Self {
-        let hours = (decimal_degrees.degrees / 15.0).trunc();
-        let mut remainder = decimal_degrees.degrees - (hours * 15.0);
+    fn from(degrees: DegreeAngle) -> Self {
+        let decimal_degrees = map_to_branch(degrees.degrees, 0.0, 360.0);
+        let hours = (decimal_degrees / 15.0).trunc();
+        let mut remainder = decimal_degrees- (hours * 15.0);
         let minutes = (remainder * 60.0).trunc();
         remainder = remainder - 60.0 * minutes;
         let seconds = remainder * 3600.0;
@@ -245,7 +278,8 @@ impl From<DegreeAngle> for HMSAngle {
 }
 impl From<DMSAngle> for HMSAngle {
     fn from(dms: DMSAngle) -> Self {
-        let decimal_degrees = dms.degrees as f64 + (dms.minutes * 60) as f64 + 3600.0 * dms.seconds;
+        let mut decimal_degrees = dms.degrees as f64 + (dms.minutes * 60) as f64 + 3600.0 * dms.seconds;
+        decimal_degrees = map_to_branch(decimal_degrees, 0.0, 360.0);
         let hours = (decimal_degrees / 15.0).trunc();
         let mut remainder = decimal_degrees - (hours * 15.0);
         let minutes = (remainder * 60.0).trunc();
@@ -260,7 +294,41 @@ impl From<DMSAngle> for HMSAngle {
     }
 }
 
+fn map_to_branch(val: f64, min: f64, max: f64) -> f64 {
+    let range = max - min;
+
+    if val < min {
+        let factor = ((val - min) / range).floor();
+        val - factor * range
+    } else if val > max {
+        let factor = ((val - max) / range).ceil();
+        val - factor * range
+    } else {
+        val
+    }
+}
+
+// test approximate equality, only used in unit tests.
+#[cfg(test)]
+fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
+    (left - right).abs() < tol
+}
+
 #[cfg(test)]
 mod angles_tests {
+    use super::*;
 
+    #[test]
+    fn test_map_to_branch()
+    {
+        assert!(approx_eq(map_to_branch(-200.0, -180.0, 180.0), 160.0, 1.0e-12));
+        assert!(approx_eq(map_to_branch(-200.0, 0.0, 360.0), 160.0, 1.0e-12));
+        assert!(approx_eq(map_to_branch(200.0, -180.0, 180.0), -160.0, 1.0e-12));
+        assert!(approx_eq(map_to_branch(200.0, 0.0, 360.0), 200.0, 1.0e-12));
+
+        assert!(approx_eq(map_to_branch(-500.0, -180.0, 180.0), -140.0, 1.0e-12));
+        assert!(approx_eq(map_to_branch(-500.0, 0.0, 360.0), 220.0, 1.0e-12));
+        assert!(approx_eq(map_to_branch(500.0, -180.0, 180.0), 140.0, 1.0e-12));
+        assert!(approx_eq(map_to_branch(500.0, 0.0, 360.0), 140.0, 1.0e-12));
+    }
 }
