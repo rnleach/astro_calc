@@ -10,7 +10,7 @@
 use std::result;
 
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AstroAlgorithmsError {
     /// Indicate the range of allowable dates was exceeded by an algorithm or
     /// type.
@@ -27,12 +27,27 @@ pub enum AstroAlgorithmsError {
     /// Invalid arguments used for a time. Values are hours, minutes, seconds
     InvalidTime(i32, i32, i32),
 
+    /// Invalid angle. Some algorithms and types put restrictions on the allowed
+    /// ranges for angles, the string should provide more context.
+    InvalidAngle(String),
+
+    /// Aborted due to encountering a NaN (Not a Number) with floating point 
+    /// numbers.
+    EncounteredNaN,
+
+    /// Aborted due to encountering infinite value in floating point numbers.
+    EncounteredInf,
+
+    /// Negative numbers are not allowed everywhere, so sometimes you have to
+    /// abort if they are encountered.
+    EncounteredInappropriateNegativeValue,
+
     UnspecifiedError,
 }
 
 /// An error indicating that the date was either too early or too late for the
 /// algorithm or type that was using it.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DateRangeError {
     /// Most algorithms and types in this library are only valid for with
     /// Julian date greater than `0.0` (which corresponds to proleptic 12 noon
