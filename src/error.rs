@@ -31,7 +31,7 @@ pub enum AstroAlgorithmsError {
     /// ranges for angles, the string should provide more context.
     InvalidAngle(String),
 
-    /// Aborted due to encountering a NaN (Not a Number) with floating point 
+    /// Aborted due to encountering a NaN (Not a Number) with floating point
     /// numbers.
     EncounteredNaN,
 
