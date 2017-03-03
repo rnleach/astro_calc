@@ -11,27 +11,25 @@
 //! most computer functions work with radians. The other types are mainly there
 //! for ease of use and formatting with input and output.
 //!
-//! TODO
-//!  - [ ] Unittests for both positive and negative angles.
 use std::convert::From;
 use std::fmt;
 
 use super::super::error::*;
 
 /// Represent an angle in radians.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RadianAngle {
     radians: f64,
 }
 
 /// Represent an angle in decimal degrees.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DegreeAngle {
     degrees: f64,
 }
 
 /// Represent an angle as degrees, minutes, and decimal seconds.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DMSAngle {
     degrees: i32,
     minutes: i32,
@@ -41,7 +39,7 @@ pub struct DMSAngle {
 /// Represent an angle in hours, minutes, and seconds.
 ///
 /// This type is forced to be between 0h and 24 hours.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HMSAngle {
     hours: i32,
     minutes: i32,
@@ -272,7 +270,7 @@ impl From<RadianAngle> for DMSAngle {
         let degrees = decimal_degrees.trunc();
         let mut remainder = decimal_degrees - degrees;
         let minutes = (remainder * 60.0).trunc();
-        remainder = remainder - 60.0 * minutes;
+        remainder = remainder - minutes / 60.0;
         let seconds = remainder * 3600.0;
 
         DMSAngle {
@@ -287,7 +285,7 @@ impl From<DegreeAngle> for DMSAngle {
         let degrees = decimal_degrees.degrees.trunc();
         let mut remainder = decimal_degrees.degrees - degrees;
         let minutes = (remainder * 60.0).trunc();
-        remainder = remainder - 60.0 * minutes;
+        remainder = remainder - minutes / 60.0;
         let seconds = remainder * 3600.0;
 
         DMSAngle {
@@ -323,9 +321,9 @@ impl From<RadianAngle> for HMSAngle {
         decimal_degrees = map_to_branch(decimal_degrees, 0.0, 360.0);
         
         let hours = (decimal_degrees / 15.0).trunc();
-        let mut remainder = decimal_degrees - (hours * 15.0);
+        let mut remainder = decimal_degrees / 15.0 - hours ;
         let minutes = (remainder * 60.0).trunc();
-        remainder = remainder - 60.0 * minutes;
+        remainder = remainder - minutes / 60.0;
         let seconds = remainder * 3600.0;
 
         HMSAngle {
@@ -339,9 +337,9 @@ impl From<DegreeAngle> for HMSAngle {
     fn from(degrees: DegreeAngle) -> Self {
         let decimal_degrees = map_to_branch(degrees.degrees, 0.0, 360.0);
         let hours = (decimal_degrees / 15.0).trunc();
-        let mut remainder = decimal_degrees- (hours * 15.0);
+        let mut remainder = decimal_degrees / 15.0 - hours;
         let minutes = (remainder * 60.0).trunc();
-        remainder = remainder - 60.0 * minutes;
+        remainder = remainder - minutes / 60.0;
         let seconds = remainder * 3600.0;
 
         HMSAngle {
@@ -399,6 +397,266 @@ mod angle_from_tests {
         assert!(approx_eq(RadianAngle::from(HMSAngle::new(4,0,0.0).unwrap()).radians, FRAC_PI_3, 1.0e-15));
         assert!(approx_eq(RadianAngle::from(HMSAngle::new(3,0,0.0).unwrap()).radians, FRAC_PI_4, 1.0e-15));
     }
+
+    #[test]
+    fn test_from_for_degree_angle() {
+        assert!(approx_eq(DegreeAngle::from(RadianAngle::new(PI).unwrap()).degrees, 180.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(RadianAngle::new(-PI).unwrap()).degrees, -180.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(RadianAngle::new(FRAC_PI_2).unwrap()).degrees, 90.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(RadianAngle::new(-FRAC_PI_2).unwrap()).degrees, -90.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(RadianAngle::new(FRAC_PI_3).unwrap()).degrees, 60.0, 1.0e-14));
+        assert!(approx_eq(DegreeAngle::from(RadianAngle::new(-FRAC_PI_3).unwrap()).degrees, -60.0, 1.0e-14));
+        assert!(approx_eq(DegreeAngle::from(RadianAngle::new(FRAC_PI_4).unwrap()).degrees, 45.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(RadianAngle::new(-FRAC_PI_4).unwrap()).degrees, -45.0, 1.0e-15));
+
+        assert!(approx_eq(DegreeAngle::from(DMSAngle::new(180,0,0.0).unwrap()).degrees, 180.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(DMSAngle::new(-180,0,0.0).unwrap()).degrees, -180.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(DMSAngle::new(90,0,0.0).unwrap()).degrees, 90.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(DMSAngle::new(-90,0,0.0).unwrap()).degrees, -90.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(DMSAngle::new(60,0,0.0).unwrap()).degrees, 60.0, 1.0e-14));
+        assert!(approx_eq(DegreeAngle::from(DMSAngle::new(-60,0,0.0).unwrap()).degrees, -60.0, 1.0e-14));
+        assert!(approx_eq(DegreeAngle::from(DMSAngle::new(45,0,0.0).unwrap()).degrees, 45.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(DMSAngle::new(-45,0,0.0).unwrap()).degrees, -45.0, 1.0e-15));
+
+        assert!(approx_eq(DegreeAngle::from(HMSAngle::new(12,0,0.0).unwrap()).degrees, 180.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(HMSAngle::new(6,0,0.0).unwrap()).degrees, 90.0, 1.0e-15));
+        assert!(approx_eq(DegreeAngle::from(HMSAngle::new(4,0,0.0).unwrap()).degrees, 60.0, 1.0e-14));
+        assert!(approx_eq(DegreeAngle::from(HMSAngle::new(3,0,0.0).unwrap()).degrees, 45.0, 1.0e-15));
+    }
+
+    #[test]
+    fn test_from_for_dms_angle() {
+        //
+        // from radians
+        //
+        let test_val = DMSAngle::from(RadianAngle::new(PI).unwrap());
+        assert_eq!(test_val.degrees, 180);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(RadianAngle::new(-PI).unwrap());
+        assert_eq!(test_val.degrees, -180);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(RadianAngle::new(FRAC_PI_2).unwrap());
+        assert_eq!(test_val.degrees, 90);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(RadianAngle::new(-FRAC_PI_2).unwrap());
+        assert_eq!(test_val.degrees, -90);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(RadianAngle::new(FRAC_PI_3).unwrap());
+        assert_eq!(test_val.degrees, 60);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = DMSAngle::from(RadianAngle::new(-FRAC_PI_3).unwrap());
+        assert_eq!(test_val.degrees, -60);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = DMSAngle::from(RadianAngle::new(FRAC_PI_4).unwrap());
+        assert_eq!(test_val.degrees, 45);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = DMSAngle::from(RadianAngle::new(-FRAC_PI_4).unwrap());
+        assert_eq!(test_val.degrees, -45);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        //
+        // From degrees
+        //
+        let test_val = DMSAngle::from(DegreeAngle::new(180.0).unwrap());
+        assert_eq!(test_val.degrees, 180);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(DegreeAngle::new(-180.0).unwrap());
+        assert_eq!(test_val.degrees, -180);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(DegreeAngle::new(90.0).unwrap());
+        assert_eq!(test_val.degrees, 90);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(DegreeAngle::new(-90.0).unwrap());
+        assert_eq!(test_val.degrees, -90);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(DegreeAngle::new(60.0).unwrap());
+        assert_eq!(test_val.degrees, 60);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = DMSAngle::from(DegreeAngle::new(-60.0).unwrap());
+        assert_eq!(test_val.degrees, -60);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = DMSAngle::from(DegreeAngle::new(45.0).unwrap());
+        assert_eq!(test_val.degrees, 45);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = DMSAngle::from(DegreeAngle::new(-45.0).unwrap());
+        assert_eq!(test_val.degrees, -45);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = DMSAngle::from(DegreeAngle::new(-45.55).unwrap());
+        assert_eq!(test_val.degrees, -45);
+        assert_eq!(test_val.minutes, 32);
+        assert!(approx_eq(test_val.seconds, 60.0, 1.0e-10));
+
+        //
+        // From HMS
+        //
+        let test_val = DMSAngle::from(HMSAngle::new(12,0,0.0).unwrap());
+        assert_eq!(test_val.degrees, 180);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(HMSAngle::new(6,0,0.0).unwrap());
+        assert_eq!(test_val.degrees, 90);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = DMSAngle::from(HMSAngle::new(4,0,0.0).unwrap());
+        assert_eq!(test_val.degrees, 60);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = DMSAngle::from(HMSAngle::new(3,0,0.0).unwrap());
+        assert_eq!(test_val.degrees, 45);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+    }
+
+    #[test]
+    fn test_from_for_hms_angle() {
+        //
+        // from radians
+        //
+        let test_val = HMSAngle::from(RadianAngle::new(PI).unwrap());
+        assert_eq!(test_val.hours, 12);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(RadianAngle::new(-PI).unwrap());
+        assert_eq!(test_val.hours, 12);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(RadianAngle::new(FRAC_PI_2).unwrap());
+        assert_eq!(test_val.hours, 6);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(RadianAngle::new(-FRAC_PI_2).unwrap());
+        assert_eq!(test_val.hours, 18);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(RadianAngle::new(FRAC_PI_3).unwrap());
+        assert_eq!(test_val.hours, 4);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = HMSAngle::from(RadianAngle::new(-FRAC_PI_3).unwrap());
+        assert_eq!(test_val.hours, 20);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = HMSAngle::from(RadianAngle::new(FRAC_PI_4).unwrap());
+        assert_eq!(test_val.hours, 3);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = HMSAngle::from(RadianAngle::new(-FRAC_PI_4).unwrap());
+        assert_eq!(test_val.hours, 21);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        //
+        // From degrees
+        //
+        let test_val = HMSAngle::from(DegreeAngle::new(180.0).unwrap());
+        assert_eq!(test_val.hours, 12);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(DegreeAngle::new(-180.0).unwrap());
+        assert_eq!(test_val.hours, 12);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(DegreeAngle::new(90.0).unwrap());
+        assert_eq!(test_val.hours, 6);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(DegreeAngle::new(-90.0).unwrap());
+        assert_eq!(test_val.hours, 18);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(DegreeAngle::new(60.0).unwrap());
+        assert_eq!(test_val.hours, 4);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = HMSAngle::from(DegreeAngle::new(-60.0).unwrap());
+        assert_eq!(test_val.hours, 20);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = HMSAngle::from(DegreeAngle::new(45.0).unwrap());
+        assert_eq!(test_val.hours, 3);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = HMSAngle::from(DegreeAngle::new(-45.0).unwrap());
+        assert_eq!(test_val.hours, 21);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = HMSAngle::from(DegreeAngle::new(-45.55).unwrap());
+        assert_eq!(test_val.hours, 20);
+        assert_eq!(test_val.minutes, 57);
+        assert!(approx_eq(test_val.seconds, 48.0, 1.0e-10));
+
+        //
+        // From DMS
+        //
+        let test_val = HMSAngle::from(DMSAngle::new(180,0,0.0).unwrap());
+        assert_eq!(test_val.hours, 12);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(DMSAngle::new(90,0,0.0).unwrap());
+        assert_eq!(test_val.hours, 6);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-15));
+
+        let test_val = HMSAngle::from(DMSAngle::new(60,0,0.0).unwrap());
+        assert_eq!(test_val.hours, 4);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+
+        let test_val = HMSAngle::from(DMSAngle::new(45,0,0.0).unwrap());
+        assert_eq!(test_val.hours, 3);
+        assert_eq!(test_val.minutes, 0);
+        assert!(approx_eq(test_val.seconds, 0.0, 1.0e-10));
+    }
 }
 
 fn map_to_branch(val: f64, min: f64, max: f64) -> f64 {
@@ -437,5 +695,7 @@ mod angles_tests {
         assert!(approx_eq(map_to_branch(-500.0, 0.0, 360.0), 220.0, 1.0e-12));
         assert!(approx_eq(map_to_branch(500.0, -180.0, 180.0), 140.0, 1.0e-12));
         assert!(approx_eq(map_to_branch(500.0, 0.0, 360.0), 140.0, 1.0e-12));
+
+        assert!(approx_eq(map_to_branch(-45.55, 0.0, 360.0), 314.45, 1.0e-12));
     }
 }
