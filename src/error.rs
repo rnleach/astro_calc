@@ -10,7 +10,7 @@
 use std::result;
 
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AstroAlgorithmsError {
     /// Indicate the range of allowable dates was exceeded by an algorithm or
     /// type.
@@ -47,7 +47,7 @@ pub enum AstroAlgorithmsError {
 
 /// An error indicating that the date was either too early or too late for the
 /// algorithm or type that was using it.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DateRangeError {
     /// Most algorithms and types in this library are only valid for with
     /// Julian date greater than `0.0` (which corresponds to proleptic 12 noon

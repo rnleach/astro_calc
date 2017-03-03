@@ -50,10 +50,8 @@ pub struct HMSAngle {
 
 /// Common interface for all angle types.
 pub trait AngleTrait
-    : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> + fmt::Display {
-    // TODO
-    // Getters for each format.
-}
+    : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> 
+    + From<HMSAngle> + fmt::Display {}
 
 impl AngleTrait for RadianAngle {}
 impl AngleTrait for DegreeAngle {}
@@ -128,6 +126,83 @@ impl HMSAngle {
         } else {
             Ok(HMSAngle{hours: hours, minutes: minutes, seconds: seconds })
         }
+    }
+}
+#[cfg(test)]
+mod constructor_tests {
+    use super::*;
+    
+    #[test]
+    fn test_radian_angle_new(){
+        use std::f64;
+
+        assert_eq!(RadianAngle::new(2.0).unwrap().radians, 2.0);
+        assert_eq!(RadianAngle::new(-52872.0).unwrap().radians, -52872.0);
+        assert_eq!(RadianAngle::new(f64::NAN).unwrap_err(), 
+            AstroAlgorithmsError::EncounteredNaN);
+        assert_eq!(RadianAngle::new(-f64::INFINITY).unwrap_err(), 
+            AstroAlgorithmsError::EncounteredInf);
+    }
+
+    #[test]
+    fn test_degree_angle_new(){
+        use std::f64;
+
+        assert_eq!(DegreeAngle::new(200.0).unwrap().degrees, 200.0);
+        assert_eq!(DegreeAngle::new(-2000.0).unwrap().degrees, -2000.0);
+        assert_eq!(DegreeAngle::new(f64::NAN).unwrap_err(), 
+            AstroAlgorithmsError::EncounteredNaN);
+        assert_eq!(DegreeAngle::new(-f64::INFINITY).unwrap_err(), 
+            AstroAlgorithmsError::EncounteredInf);
+    }
+
+    #[test]
+    fn test_dms_angle_new(){
+        use std::f64;
+
+        let test_subject = DMSAngle::new(222, 22, 22.22).unwrap();
+        assert_eq!( test_subject.degrees, 222);
+        assert_eq!(test_subject.minutes, 22);
+        assert_eq!(test_subject.seconds, 22.22);
+
+        let test_subject = DMSAngle::new(-222, 22, 22.22).unwrap();
+        assert_eq!( test_subject.degrees, -222);
+        assert_eq!(test_subject.minutes, -22);
+        assert_eq!(test_subject.seconds, -22.22);
+
+        let test_subject = DMSAngle::new(-222, -22, 22.22).unwrap();
+        assert_eq!( test_subject.degrees, -222);
+        assert_eq!(test_subject.minutes, -22);
+        assert_eq!(test_subject.seconds, -22.22);
+
+        let test_subject = DMSAngle::new(222, -22, 22.22).unwrap();
+        assert_eq!( test_subject.degrees, 222);
+        assert_eq!(test_subject.minutes, 22);
+        assert_eq!(test_subject.seconds, 22.22);
+
+        assert_eq!(DMSAngle::new(222, 22, f64::NAN).unwrap_err(),
+            AstroAlgorithmsError::EncounteredNaN);
+
+        assert_eq!(DMSAngle::new(222, 22, f64::INFINITY).unwrap_err(), 
+            AstroAlgorithmsError::EncounteredInf);
+    }
+
+    #[test]
+    fn test_hms_angle_new(){
+        use std::f64;
+
+        let test_subject = HMSAngle::new(22, 22, 22.22).unwrap();
+        assert_eq!( test_subject.hours, 22);
+        assert_eq!(test_subject.minutes, 22);
+        assert_eq!(test_subject.seconds, 22.22);
+        assert_eq!(HMSAngle::new(22, 22, f64::NAN).unwrap_err(),
+            AstroAlgorithmsError::EncounteredNaN);
+        assert_eq!(HMSAngle::new(22, 22, f64::INFINITY).unwrap_err(), 
+            AstroAlgorithmsError::EncounteredInf);
+        assert_eq!(HMSAngle::new(-22, 22, 22.22).unwrap_err(), 
+            AstroAlgorithmsError::EncounteredInappropriateNegativeValue);
+        assert_eq!(HMSAngle::new(24, 22, 22.22).unwrap_err(), 
+            AstroAlgorithmsError::InvalidAngle("Hour limited to range [0,24)".to_owned()));
     }
 }
 
@@ -293,6 +368,8 @@ impl From<DMSAngle> for HMSAngle {
         }
     }
 }
+
+// TODO - tests for conversions.
 
 fn map_to_branch(val: f64, min: f64, max: f64) -> f64 {
     let range = max - min;
