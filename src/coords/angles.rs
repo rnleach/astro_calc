@@ -129,7 +129,7 @@ impl HMSAngle {
     }
 }
 #[cfg(test)]
-mod constructor_tests {
+mod angle_constructor_tests {
     use super::*;
     
     #[test]
@@ -369,7 +369,37 @@ impl From<DMSAngle> for HMSAngle {
     }
 }
 
-// TODO - tests for conversions.
+#[cfg(test)]
+mod angle_from_tests {
+    use super::*;
+    use std::f64::consts::{PI, FRAC_PI_2, FRAC_PI_3, FRAC_PI_4};
+
+    #[test]
+    fn test_from_for_radian_angle() {
+        assert!(approx_eq(RadianAngle::from(DegreeAngle::new(180.0).unwrap()).radians, PI, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DegreeAngle::new(-180.0).unwrap()).radians, -PI, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DegreeAngle::new(90.0).unwrap()).radians, FRAC_PI_2, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DegreeAngle::new(-90.0).unwrap()).radians, -FRAC_PI_2, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DegreeAngle::new(60.0).unwrap()).radians, FRAC_PI_3, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DegreeAngle::new(-60.0).unwrap()).radians, -FRAC_PI_3, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DegreeAngle::new(45.0).unwrap()).radians, FRAC_PI_4, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DegreeAngle::new(-45.0).unwrap()).radians, -FRAC_PI_4, 1.0e-15));
+
+        assert!(approx_eq(RadianAngle::from(DMSAngle::new(180,0,0.0).unwrap()).radians, PI, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DMSAngle::new(-180,0,0.0).unwrap()).radians, -PI, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DMSAngle::new(90,0,0.0).unwrap()).radians, FRAC_PI_2, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DMSAngle::new(-90,0,0.0).unwrap()).radians, -FRAC_PI_2, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DMSAngle::new(60,0,0.0).unwrap()).radians, FRAC_PI_3, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DMSAngle::new(-60,0,0.0).unwrap()).radians, -FRAC_PI_3, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DMSAngle::new(45,0,0.0).unwrap()).radians, FRAC_PI_4, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(DMSAngle::new(-45,0,0.0).unwrap()).radians, -FRAC_PI_4, 1.0e-15));
+
+        assert!(approx_eq(RadianAngle::from(HMSAngle::new(12,0,0.0).unwrap()).radians, PI, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(HMSAngle::new(6,0,0.0).unwrap()).radians, FRAC_PI_2, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(HMSAngle::new(4,0,0.0).unwrap()).radians, FRAC_PI_3, 1.0e-15));
+        assert!(approx_eq(RadianAngle::from(HMSAngle::new(3,0,0.0).unwrap()).radians, FRAC_PI_4, 1.0e-15));
+    }
+}
 
 fn map_to_branch(val: f64, min: f64, max: f64) -> f64 {
     let range = max - min;
