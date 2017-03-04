@@ -13,7 +13,9 @@
 //!
 use std::convert::From;
 use std::fmt;
+use std::ops;
 
+// TODO implement add, subtract, and negation for angles
 use super::super::error::*;
 
 /// Represent an angle in radians.
@@ -48,7 +50,9 @@ pub struct HMSAngle {
 
 /// Common interface for all angle types.
 pub trait Angle
-    : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> + fmt::Display
+    : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> + fmt::Display + 
+    ops::Add<RadianAngle> + ops::Add<DegreeAngle> +ops::Add<DMSAngle> +ops::Add<HMSAngle> +
+    ops::Sub<RadianAngle> + ops::Sub<DegreeAngle> +ops::Sub<DMSAngle> +ops::Sub<HMSAngle>
     {
 }
 
@@ -68,6 +72,11 @@ impl RadianAngle {
             Ok(RadianAngle { radians: radians })
         }
     }
+
+    /// Get the value in radians as an f64
+    pub fn radians(&self) ->  f64 {
+        self.radians
+    }
 }
 
 impl DegreeAngle {
@@ -80,6 +89,11 @@ impl DegreeAngle {
         } else {
             Ok(DegreeAngle { degrees: degrees })
         }
+    }
+
+    /// Get the value in degrees as an f64
+    pub fn degrees(&self) -> f64 {
+        self.degrees
     }
 }
 
@@ -210,6 +224,78 @@ mod angle_constructor_tests {
                    AstroAlgorithmsError::EncounteredInappropriateNegativeValue);
         assert_eq!(HMSAngle::new(24, 22, 22.22).unwrap_err(),
                    AstroAlgorithmsError::InvalidAngle("Hour limited to range [0,24)".to_owned()));
+    }
+}
+
+/// Create addition, subtraction operators for angles.
+macro_rules! make_add_sub_operators_for {
+    (RadianAngle, $rhs:ty) => (
+        impl ops::Add<$rhs> for RadianAngle {
+            type Output = RadianAngle;
+
+            fn add(self, other: $rhs)->Self {
+                Self::from(RadianAngle { radians: self.radians + RadianAngle::from(other).radians })
+            }
+        }
+        impl ops::Sub<$rhs> for RadianAngle {
+            type Output = RadianAngle;
+
+            fn sub(self, other: $rhs)->Self {
+                Self::from(RadianAngle { radians: self.radians - RadianAngle::from(other).radians })
+            }
+        }
+    );
+    ($lhs:ty, $rhs:ty) => (
+        impl ops::Add<$rhs> for $lhs {
+            type Output = $lhs;
+
+            fn add(self, other: $rhs)->Self {
+                Self::from(DegreeAngle { degrees: DegreeAngle::from(self).degrees + DegreeAngle::from(other).degrees })
+            }
+        }
+        impl ops::Sub<$rhs> for $lhs {
+            type Output = $lhs;
+
+            fn sub(self, other: $rhs)->Self {
+                Self::from(DegreeAngle { degrees: DegreeAngle::from(self).degrees - DegreeAngle::from(other).degrees })
+            }
+        }
+    )
+}
+/// Make all the operators for the angles
+macro_rules! make_all_operators_for {
+    ($lhs:ty) => (
+        make_add_sub_operators_for!($lhs, RadianAngle);
+        make_add_sub_operators_for!($lhs, DegreeAngle);
+        make_add_sub_operators_for!($lhs, DMSAngle);
+        make_add_sub_operators_for!($lhs, HMSAngle);
+    );
+}
+
+make_all_operators_for!(RadianAngle);
+make_all_operators_for!(DegreeAngle);
+make_all_operators_for!(DMSAngle);
+make_all_operators_for!(HMSAngle);
+
+impl ops::Neg for RadianAngle {
+    type Output = RadianAngle;
+
+    fn neg(self) -> Self::Output {
+        RadianAngle { radians: -self.radians }
+    }
+}
+impl ops::Neg for DegreeAngle {
+    type Output = DegreeAngle;
+
+    fn neg(self) -> Self::Output {
+        DegreeAngle { degrees: -self.degrees }
+    }
+}
+impl ops::Neg for DMSAngle {
+    type Output = DMSAngle;
+
+    fn neg(self) -> Self::Output {
+        DMSAngle { degrees: -self.degrees, .. self}
     }
 }
 
