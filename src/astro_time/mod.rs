@@ -11,6 +11,7 @@ use std::cmp::Ordering;
 use std::option::Option;
 
 use super::error::*;
+use super::coords::DegreeAngle;
 
 mod time_data;
 
@@ -19,7 +20,7 @@ mod time_data;
 /// Dynamic Time is measured by atomic clocks and represents the kind of time you do physical
 /// calculations with. Universal time is determined by the position of Earth with respect to the
 /// Sun and varies by leap seconds to account for minor changes in Earth's orbit.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum TimeType {
     /// Universal Time, also known as UTC, Zulu, or GMT
     UT,
@@ -462,7 +463,7 @@ mod astro_tm_bldr_tests {
 ///
 /// The internal representation is as a Julian Day number, but it is only valid for dates with
 /// Julian Day number >= 0.0. Many methods check for this and will return an error if found.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct AstroTime {
     julian_day: f64,
     time_type: TimeType,
@@ -577,8 +578,7 @@ impl AstroTime {
     /// Get the sidereal time at Greenwich.
     ///
     /// Returns the sidereal time in decimal degrees.
-    // TODO - return some generalized angle/time type.
-    pub fn sidereal_greenwich(&self) -> f64 {
+    pub fn sidereal_greenwich(&self) -> AstroResult<DegreeAngle> {
         // Chapter 12 of Astronomical Algorithms 2nd ed. By Jean Meeus.
         use std::f64;
 
@@ -595,7 +595,7 @@ impl AstroTime {
             theta_0 -= 360.0;
         }
 
-        theta_0
+        DegreeAngle::new(theta_0)
     }
 
     // Calculate the delta-t value for applying a conversion between unversal
@@ -728,7 +728,7 @@ mod astro_time_tests {
         assert!(approx_eq(Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0)
                               .build()
                               .unwrap()
-                              .sidereal_greenwich(),
+                              .sidereal_greenwich().unwrap().degrees(),
                           128.737_873_4,
                           1.0e-6));
     }
