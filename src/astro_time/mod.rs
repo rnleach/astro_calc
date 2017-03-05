@@ -728,7 +728,9 @@ mod astro_time_tests {
         assert!(approx_eq(Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0)
                               .build()
                               .unwrap()
-                              .sidereal_greenwich().unwrap().degrees(),
+                              .sidereal_greenwich()
+                              .unwrap()
+                              .degrees(),
                           128.737_873_4,
                           1.0e-6));
     }

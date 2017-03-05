@@ -15,7 +15,8 @@ use std::convert::From;
 use std::fmt;
 use std::ops;
 
-// TODO implement add, subtract, and negation for angles
+// TODO tests with minutes and seconds for the conversions!
+// TODO map to branch trait, use 0 to 360 and -180 to 180 branches
 use super::super::error::*;
 
 /// Represent an angle in radians.
@@ -50,7 +51,7 @@ pub struct HMSAngle {
 
 /// Common interface for all angle types.
 pub trait Angle
-    : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> + fmt::Display + 
+    : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> + fmt::Display +
     ops::Add<RadianAngle> + ops::Add<DegreeAngle> +ops::Add<DMSAngle> +ops::Add<HMSAngle> +
     ops::Sub<RadianAngle> + ops::Sub<DegreeAngle> +ops::Sub<DMSAngle> +ops::Sub<HMSAngle>
     {
@@ -74,7 +75,7 @@ impl RadianAngle {
     }
 
     /// Get the value in radians as an f64
-    pub fn radians(&self) ->  f64 {
+    pub fn radians(&self) -> f64 {
         self.radians
     }
 }
@@ -250,14 +251,22 @@ macro_rules! make_add_sub_operators_for {
             type Output = $lhs;
 
             fn add(self, other: $rhs)->Self {
-                Self::from(DegreeAngle { degrees: DegreeAngle::from(self).degrees + DegreeAngle::from(other).degrees })
+                Self::from(
+                    DegreeAngle { 
+                        degrees: DegreeAngle::from(self).degrees + DegreeAngle::from(other).degrees 
+                    }
+                )
             }
         }
         impl ops::Sub<$rhs> for $lhs {
             type Output = $lhs;
 
             fn sub(self, other: $rhs)->Self {
-                Self::from(DegreeAngle { degrees: DegreeAngle::from(self).degrees - DegreeAngle::from(other).degrees })
+                Self::from(
+                    DegreeAngle { 
+                        degrees: DegreeAngle::from(self).degrees - DegreeAngle::from(other).degrees 
+                    }
+                )
             }
         }
     )
@@ -295,7 +304,7 @@ impl ops::Neg for DMSAngle {
     type Output = DMSAngle;
 
     fn neg(self) -> Self::Output {
-        DMSAngle { degrees: -self.degrees, .. self}
+        DMSAngle { degrees: -self.degrees, ..self }
     }
 }
 
@@ -352,13 +361,13 @@ impl From<RadianAngle> for DegreeAngle {
 }
 impl From<DMSAngle> for DegreeAngle {
     fn from(dms: DMSAngle) -> Self {
-        let degrees = dms.degrees as f64 + (60 * dms.minutes) as f64 + 3600.0 * dms.seconds;
+        let degrees = dms.degrees as f64 + dms.minutes as f64 / 60.0 + dms.seconds / 3600.0;
         DegreeAngle { degrees: degrees }
     }
 }
 impl From<HMSAngle> for DegreeAngle {
     fn from(hms: HMSAngle) -> Self {
-        let degrees = (hms.hours * 15) as f64 + (60 * hms.minutes) as f64 + 3600.0 * hms.seconds;
+        let degrees = (hms.hours as f64 + hms.minutes as f64 / 60.0 + hms.seconds / 3600.0) * 15.0;
         DegreeAngle { degrees: degrees }
     }
 }
