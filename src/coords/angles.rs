@@ -428,7 +428,8 @@ impl ops::Neg for HMSAngle {
 
 impl fmt::Display for RadianAngle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} radians", self.radians)
+        let frac = self.radians / PI;
+        write!(f, "{}*\u{03C0} rad", frac)
     }
 }
 
@@ -440,17 +441,32 @@ impl fmt::Display for DegreeAngle {
 
 impl fmt::Display for DMSAngle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "{}\u{00B0} {}\' {}\"",
-               self.degrees,
-               self.minutes,
-               self.seconds)
+        let degrees = self.degrees;
+        let mut minutes = self.minutes;
+        let mut seconds = self.seconds;
+        if degrees != 0 {
+            minutes = minutes.abs();
+        }
+        if degrees != 0 || minutes != 0 {
+            seconds = seconds.abs();
+        }
+
+        write!(f, "{}\u{00B0} {}\' {}\"", degrees, minutes, seconds)
     }
 }
 
 impl fmt::Display for HMSAngle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}h {}m {}s", self.hours, self.minutes, self.seconds)
+        let hours = self.hours;
+        let mut minutes = self.minutes;
+        let mut seconds = self.seconds;
+        if hours != 0 {
+            minutes = minutes.abs();
+        }
+        if hours != 0 || minutes != 0 {
+            seconds = seconds.abs();
+        }
+        write!(f, "{}h {}m {}s", hours, minutes, seconds)
     }
 }
 
@@ -501,8 +517,8 @@ impl From<RadianAngle> for DMSAngle {
 
         DMSAngle {
             degrees: degrees as i32,
-            minutes: minutes.abs() as i32,
-            seconds: seconds.abs(),
+            minutes: minutes as i32,
+            seconds: seconds,
         }
     }
 }
@@ -516,8 +532,8 @@ impl From<DegreeAngle> for DMSAngle {
 
         DMSAngle {
             degrees: degrees as i32,
-            minutes: minutes.abs() as i32,
-            seconds: seconds.abs(),
+            minutes: minutes as i32,
+            seconds: seconds,
         }
     }
 }
@@ -533,8 +549,8 @@ impl From<HMSAngle> for DMSAngle {
 
         DMSAngle {
             degrees: degrees as i32,
-            minutes: minutes.abs() as i32,
-            seconds: seconds.abs(),
+            minutes: minutes as i32,
+            seconds: seconds,
         }
     }
 }
@@ -791,8 +807,8 @@ mod angle_from_tests {
 
         let test_val = DMSAngle::from(RadianAngle::new(-0.2139424597094649));
         assert_eq!(test_val.degrees, -12);
-        assert_eq!(test_val.minutes, 15);
-        assert!(approx_eq(test_val.seconds, 28.8, 1.0e-9));
+        assert_eq!(test_val.minutes, -15);
+        assert!(approx_eq(test_val.seconds, -28.8, 1.0e-9));
 
         //
         // From degrees
@@ -839,13 +855,13 @@ mod angle_from_tests {
 
         let test_val = DMSAngle::from(DegreeAngle::new(-45.55));
         assert_eq!(test_val.degrees, -45);
-        assert_eq!(test_val.minutes, 32);
-        assert!(approx_eq(test_val.seconds, 60.0, 1.0e-10));
+        assert_eq!(test_val.minutes, -32);
+        assert!(approx_eq(test_val.seconds, -60.0, 1.0e-10));
 
         let test_val = DMSAngle::from(DegreeAngle::new(-12.258));
         assert_eq!(test_val.degrees, -12);
-        assert_eq!(test_val.minutes, 15);
-        assert!(approx_eq(test_val.seconds, 28.8, 1.0e-9));
+        assert_eq!(test_val.minutes, -15);
+        assert!(approx_eq(test_val.seconds, -28.8, 1.0e-9));
 
         //
         // From HMS
@@ -872,8 +888,8 @@ mod angle_from_tests {
 
         let test_val = DMSAngle::from(HMSAngle::new(0, -49, 1.92));
         assert_eq!(test_val.degrees, -12);
-        assert_eq!(test_val.minutes, 15);
-        assert!(approx_eq(test_val.seconds, 28.8, 1.0e-9));
+        assert_eq!(test_val.minutes, -15);
+        assert!(approx_eq(test_val.seconds, -28.8, 1.0e-9));
     }
 
     #[test]

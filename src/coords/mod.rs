@@ -164,6 +164,11 @@ mod private_test {
 
     #[test]
     fn test_local_hour_angle() {
+        // This example is from page 95 of Meeus. I had to make a correction since I am not
+        // adjusting for the apparent sidereal time in my calculations. That will come later.
+        // The adjust term is the subtraction of 0.0009858333333 degrees from my answer.
+        // Even still, the book example is only accurate to 1 significant digit in seconds, which
+        // translates about 3.5 significant digits in degrees.
         let gmt = Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0).build().unwrap();
         let geo_loc = GeoCoords::new_degrees(DegreeAngle::from(DMSAngle::new(38, 55, 17.0)),
                                              DegreeAngle::from(DMSAngle::new(-77, 3, 56.0)));
@@ -172,8 +177,28 @@ mod private_test {
             declination: RadianAngle::from(DMSAngle::new(-6, 43, 11.61)),
             epoch: gmt,
         };
-        assert!(approx_eq(local_hour_angle(gmt, geo_loc, astro_loc).map_to_time_range().degrees(),
+        println!();
+        println!("Error = {}",
+                 HMSAngle::from(local_hour_angle(gmt, geo_loc, astro_loc).map_to_time_range() -
+                                DegreeAngle::new(0.0009858333333) -
+                                DegreeAngle::new(64.352133)));
+        println!("Error = {}",
+                 DMSAngle::from(local_hour_angle(gmt, geo_loc, astro_loc).map_to_time_range() -
+                                DegreeAngle::new(0.0009858333333) -
+                                DegreeAngle::new(64.352133)));
+        println!("Error = {}",
+                 DegreeAngle::from(local_hour_angle(gmt, geo_loc, astro_loc).map_to_time_range() -
+                                   DegreeAngle::new(0.0009858333333) -
+                                   DegreeAngle::new(64.352133)));
+        println!("Error = {}",
+                 RadianAngle::from(local_hour_angle(gmt, geo_loc, astro_loc).map_to_time_range() -
+                                   DegreeAngle::new(0.0009858333333) -
+                                   DegreeAngle::new(64.352133)));
+        println!();
+        assert!(approx_eq(local_hour_angle(gmt, geo_loc, astro_loc)
+                              .map_to_time_range()
+                              .degrees() - 0.0009858333333,
                           64.352133,
-                          9.0e-4));
+                          1.4e-4));
     }
 }
