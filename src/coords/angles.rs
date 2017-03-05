@@ -18,8 +18,6 @@ use std::f64::consts::{PI, FRAC_PI_2};
 
 use super::super::error::*;
 
-// TODO map to branch trait, use 0 to 360 and -180 to 180 branches
-
 /// Represent an angle in radians.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RadianAngle {

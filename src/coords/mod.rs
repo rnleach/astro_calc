@@ -136,20 +136,26 @@ impl GeoCoords {
 }
 
 // Calculate the local sidereal time
-fn local_sidereal_time(gmt: AstroTime, geo_location: GeoCoords) -> RadianAngle {
-    let gst = RadianAngle::from(gmt.sidereal_greenwich()).radians();
-    let long = geo_location.longitude.radians();
-    RadianAngle::new(gst - long)
+fn local_sidereal_time(gmt: AstroTime, geo_location: GeoCoords) -> DegreeAngle {
+    let gst = gmt.sidereal_greenwich();
+    let long = geo_location.longitude;
+    gst - long
 }
 
 // Calculate the local hour angle
 fn local_hour_angle(gmt: AstroTime,
                     geo_location: GeoCoords,
                     equatorial_location: EquatorialCoords)
-                    -> RadianAngle {
-    let lst = local_sidereal_time(gmt, geo_location).radians();
-    let alpha = equatorial_location.right_acension.radians();
-    RadianAngle::new(lst - alpha)
+                    -> DegreeAngle {
+    let lst = local_sidereal_time(gmt, geo_location);
+    let alpha = equatorial_location.right_acension;
+    lst - alpha
+}
+
+// test approximate equality, only used in unit tests.
+#[cfg(test)]
+fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
+    (left - right).abs() < tol
 }
 
 #[cfg(test)]
@@ -166,7 +172,8 @@ mod private_test {
             declination: RadianAngle::from(DMSAngle::new(-6, 43, 11.61)),
             epoch: gmt,
         };
-        println!("{:?}", local_hour_angle(gmt, geo_loc, astro_loc));
-        assert!(false);
+        assert!(approx_eq(local_hour_angle(gmt, geo_loc, astro_loc).map_to_time_range().degrees(),
+                          64.352133,
+                          9.0e-4));
     }
 }
