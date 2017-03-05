@@ -239,6 +239,23 @@ fn trans_equatorial_to_ecliptical(eq: EquatorialCoords,
     }
 }
 
+// Transform from ecliptical to equatorial coordinates.
+fn trans_ecliptical_to_equatorial(ec: EclipticCoords,
+                                  obliquity_of_ecliptic: RadianAngle)
+                                  -> EquatorialCoords {
+    let ra = RadianAngle::atan2(ec.longitude.sin() * obliquity_of_ecliptic.cos() -
+                                ec.latitude.tan() * obliquity_of_ecliptic.sin(),
+                                ec.longitude.cos());
+    let dec = RadianAngle::asin(ec.latitude.sin() * obliquity_of_ecliptic.cos() +
+                                ec.latitude.cos() * obliquity_of_ecliptic.sin() *
+                                ec.longitude.sin());
+    EquatorialCoords {
+        right_acension: ra,
+        declination: dec,
+        epoch: ec.epoch,
+    }
+}
+
 // test approximate equality, only used in unit tests.
 #[cfg(test)]
 fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
@@ -290,7 +307,7 @@ mod private_test {
     }
 
     #[test]
-    fn test_trans_equatorial_to_ecliptical() {
+    fn test_trans_equatorial_to_ecliptical_and_back() {
         let eq_coords = EquatorialCoords {
             right_acension: RadianAngle::from(HMSAngle::new(7, 45, 18.946)),
             declination: RadianAngle::from(DMSAngle::new(28, 1, 34.26)),
@@ -300,13 +317,23 @@ mod private_test {
 
         let ec_coords = trans_equatorial_to_ecliptical(eq_coords, obliquity);
 
-        println!("\nPosition:\n{}\n", ec_coords);
-        
+        println!("\nPosition in EclipticCoords:\n{}\n", ec_coords);
+
         assert!(approx_eq(DegreeAngle::from(ec_coords.latitude).degrees(),
                           6.684170,
                           1.0e-6));
         assert!(approx_eq(DegreeAngle::from(ec_coords.longitude).degrees(),
                           113.215630,
                           1.0e-6));
+
+        let eq_back = trans_ecliptical_to_equatorial(ec_coords, obliquity);
+        println!("Position in EquatorialCoords: \n{}", eq_back);
+
+        assert!(approx_eq(eq_back.right_acension.radians(),
+                          eq_coords.right_acension.radians(),
+                          1.0e-15));
+        assert!(approx_eq(eq_back.declination.radians(),
+                          eq_coords.declination.radians(),
+                          1.0e-15));
     }
 }
