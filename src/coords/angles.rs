@@ -53,12 +53,57 @@ pub trait Angle
     ops::Add<RadianAngle> + ops::Add<DegreeAngle> +ops::Add<DMSAngle> +ops::Add<HMSAngle> +
     ops::Sub<RadianAngle> + ops::Sub<DegreeAngle> +ops::Sub<DMSAngle> +ops::Sub<HMSAngle>
     {
+/// Detect if the underlying number is a NaN value
+    fn is_nan(self) -> bool;
+
+/// Detect if the underlying number is infinite
+    fn is_infinite(self) -> bool;
 }
 
-impl Angle for RadianAngle {}
-impl Angle for DegreeAngle {}
-impl Angle for DMSAngle {}
-impl Angle for HMSAngle {}
+impl Angle for RadianAngle {
+    /// Detect if the underlying number is a NaN value
+    fn is_nan(self) -> bool {
+        self.radians.is_nan()
+    }
+
+    /// Detect if the underlying number is infinite
+    fn is_infinite(self) -> bool {
+        self.radians.is_infinite()
+    }
+}
+impl Angle for DegreeAngle {
+    /// Detect if the underlying number is a NaN value
+    fn is_nan(self) -> bool {
+        self.degrees.is_nan()
+    }
+
+    /// Detect if the underlying number is infinite
+    fn is_infinite(self) -> bool {
+        self.degrees.is_infinite()
+    }
+}
+impl Angle for DMSAngle {
+    /// Detect if the underlying number is a NaN value
+    fn is_nan(self) -> bool {
+        self.seconds.is_nan()
+    }
+
+    /// Detect if the underlying number is infinite
+    fn is_infinite(self) -> bool {
+        self.seconds.is_infinite()
+    }
+}
+impl Angle for HMSAngle {
+    /// Detect if the underlying number is a NaN value
+    fn is_nan(self) -> bool {
+        self.seconds.is_nan()
+    }
+
+    /// Detect if the underlying number is infinite
+    fn is_infinite(self) -> bool {
+        self.seconds.is_infinite()
+    }
+}
 
 impl RadianAngle {
     /// Create a new angle using radians.
@@ -130,19 +175,32 @@ impl HMSAngle {
 }
 
 #[cfg(test)]
-mod angle_constructor_tests {
+mod angle_impl_tests {
     use super::*;
+    use std::f64;
 
     #[test]
-    fn test_radian_angle_new() {
+    fn test_radian_angle_methods() {
         assert_eq!(RadianAngle::new(2.0).radians, 2.0);
         assert_eq!(RadianAngle::new(-52872.0).radians, -52872.0);
+
+        assert_eq!(RadianAngle::new(2.0).radians(), 2.0);
+        assert_eq!(RadianAngle::new(-52872.0).radians(), -52872.0);
+
+        assert!(RadianAngle::new(f64::NAN).is_nan());
+        assert!(RadianAngle::new(f64::INFINITY).is_infinite());
     }
 
     #[test]
-    fn test_degree_angle_new() {
+    fn test_degree_angle_methods() {
         assert_eq!(DegreeAngle::new(200.0).degrees, 200.0);
         assert_eq!(DegreeAngle::new(-2000.0).degrees, -2000.0);
+
+        assert_eq!(DegreeAngle::new(200.0).degrees(), 200.0);
+        assert_eq!(DegreeAngle::new(-2000.0).degrees(), -2000.0);
+
+        assert!(DegreeAngle::new(f64::NAN).is_nan());
+        assert!(DegreeAngle::new(f64::INFINITY).is_infinite());
     }
 
     #[test]
@@ -166,6 +224,12 @@ mod angle_constructor_tests {
         assert_eq!(test_subject.degrees, 222);
         assert_eq!(test_subject.minutes, 22);
         assert_eq!(test_subject.seconds, 22.22);
+
+        let test_subject = DMSAngle::new(222, -22, f64::NAN);
+        assert!(test_subject.is_nan());
+
+        let test_subject = DMSAngle::new(222, -22, f64::INFINITY);
+        assert!(test_subject.is_infinite());
     }
 
     #[test]
@@ -180,6 +244,12 @@ mod angle_constructor_tests {
         assert_eq!(test_subject.hours, -222);
         assert_eq!(test_subject.minutes, -22);
         assert_eq!(test_subject.seconds, -22.22);
+
+        let test_subject = HMSAngle::new(22, -22, f64::NAN);
+        assert!(test_subject.is_nan());
+
+        let test_subject = HMSAngle::new(22, -22, f64::INFINITY);
+        assert!(test_subject.is_infinite());
     }
 }
 
@@ -259,7 +329,11 @@ impl ops::Neg for DMSAngle {
     type Output = DMSAngle;
 
     fn neg(self) -> Self::Output {
-        DMSAngle { degrees: -self.degrees, minutes: -self.minutes, seconds: -self.seconds }
+        DMSAngle {
+            degrees: -self.degrees,
+            minutes: -self.minutes,
+            seconds: -self.seconds,
+        }
     }
 }
 
@@ -360,7 +434,8 @@ impl From<DegreeAngle> for DMSAngle {
 }
 impl From<HMSAngle> for DMSAngle {
     fn from(hms: HMSAngle) -> Self {
-        let decimal_degrees = (hms.hours as f64 + hms.minutes as f64 / 60.0 + hms.seconds / 3600.0) * 15.0;
+        let decimal_degrees = (hms.hours as f64 + hms.minutes as f64 / 60.0 +
+                               hms.seconds / 3600.0) * 15.0;
         let degrees = decimal_degrees.trunc();
         let mut remainder = decimal_degrees - degrees;
         let minutes = (remainder * 60.0).trunc();
