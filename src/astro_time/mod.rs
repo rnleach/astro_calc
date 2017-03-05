@@ -47,10 +47,7 @@ impl Builder {
                 }),
             }
         } else {
-            Builder {
-                target: Err(AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(raw,
-                                                                                           0.0))),
-            }
+            Builder { target: Err(AstroAlgorithmsError::DateRange) }
         }
     }
 
@@ -93,16 +90,12 @@ impl Builder {
                     }),
                 }
             } else {
-                Builder {
-                    target:
-                        Err(AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(jd,
-                                                                                           0.0))),
-                }
+                Builder { target: Err(AstroAlgorithmsError::DateRange) }
             }
         } else if !is_valid_gregorian(year, month, day) {
-            Builder { target: Err(AstroAlgorithmsError::InvalidGregorianDate(year, month, day)) }
+            Builder { target: Err(AstroAlgorithmsError::InvalidGregorianDate) }
         } else {
-            Builder { target: Err(AstroAlgorithmsError::InvalidTime(hour, minute, second)) }
+            Builder { target: Err(AstroAlgorithmsError::InvalidTime) }
         }
     }
 
@@ -140,16 +133,12 @@ impl Builder {
                     }),
                 }
             } else {
-                Builder {
-                    target:
-                        Err(AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(jd,
-                                                                                           0.0))),
-                }
+                Builder { target: Err(AstroAlgorithmsError::DateRange) }
             }
         } else if !is_valid_julian(year, month, day) {
-            Builder { target: Err(AstroAlgorithmsError::InvalidJulianDate(year, month, day)) }
+            Builder { target: Err(AstroAlgorithmsError::InvalidJulianDate) }
         } else {
-            Builder { target: Err(AstroAlgorithmsError::InvalidTime(hour, minute, second)) }
+            Builder { target: Err(AstroAlgorithmsError::InvalidTime) }
         }
     }
 
@@ -186,16 +175,8 @@ mod astro_tm_bldr_tests {
         let jd = test_time.julian_day_number();
         assert!(jd == 110.0);
 
-        let test_time = Builder::from_julian_date(-110.0).build();
-        assert!(test_time.is_err());
-
-        if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(src, thresh)) =
-            test_time.unwrap_err() {
-            assert!(src == -110.0);
-            assert!(thresh == 0.0);
-        } else {
-            panic!("Wrong error type returned.");
-        }
+        let test_time_err = Builder::from_julian_date(-110.0).build().unwrap_err();
+        assert_eq!(AstroAlgorithmsError::DateRange, test_time_err);
     }
 
     #[test]
@@ -326,31 +307,13 @@ mod astro_tm_bldr_tests {
         //
         // Test things that should fail
         //
-        let test_time = Builder::from_gregorian_utc(-4713, 11, 24, 11, 59, 59).build();
-        assert!(test_time.is_err());
-        if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(_, thresh)) =
-            test_time.unwrap_err() {
-            assert!(thresh == 0.0);
-        } else {
-            panic!("Wrong error type returned.");
-        }
+        let test_err = Builder::from_gregorian_utc(-4713, 11, 24, 11, 59, 59).build().unwrap_err();
+        assert_eq!(test_err, AstroAlgorithmsError::DateRange);
 
-        let test_time = Builder::from_gregorian_utc(1999, 2, 29, 11, 59, 59).build();
-        assert!(test_time.is_err());
-        if let AstroAlgorithmsError::InvalidGregorianDate(year, month, day) =
-            test_time.unwrap_err() {
-            assert!(year == 1999 && month == 2 && day == 29);
-        } else {
-            panic!("Wrong error type returned.");
-        }
-
-        let test_time = Builder::from_gregorian_utc(1999, 2, 28, 24, 59, 59).build();
-        assert!(test_time.is_err());
-        if let AstroAlgorithmsError::InvalidTime(hour, minute, second) = test_time.unwrap_err() {
-            assert!(hour == 24 && minute == 59 && second == 59);
-        } else {
-            panic!("Wrong error type returned.");
-        }
+        let test_err = Builder::from_gregorian_utc(1999, 2, 29, 11, 59, 59).build().unwrap_err();
+        assert_eq!(test_err, AstroAlgorithmsError::InvalidGregorianDate);
+        let test_err = Builder::from_gregorian_utc(1999, 2, 28, 24, 59, 59).build().unwrap_err();
+        assert_eq!(test_err, AstroAlgorithmsError::InvalidTime);
     }
 
     #[test]
@@ -432,30 +395,14 @@ mod astro_tm_bldr_tests {
         //
         // Test things that should fail
         //
-        let test_time = Builder::from_julian_utc(-4712, 1, 1, 11, 59, 59).build();
-        assert!(test_time.is_err());
-        if let AstroAlgorithmsError::RangeError(DateRangeError::DateUnderflow(_, thresh)) =
-            test_time.unwrap_err() {
-            assert!(thresh == 0.0);
-        } else {
-            panic!("Wrong error type returned.");
-        }
+        let test_err = Builder::from_julian_utc(-4712, 1, 1, 11, 59, 59).build().unwrap_err();
+        assert_eq!(test_err, AstroAlgorithmsError::DateRange);
 
-        let test_time = Builder::from_julian_utc(1999, 2, 29, 11, 59, 59).build();
-        assert!(test_time.is_err());
-        if let AstroAlgorithmsError::InvalidJulianDate(year, month, day) = test_time.unwrap_err() {
-            assert!(year == 1999 && month == 2 && day == 29);
-        } else {
-            panic!("Wrong error type returned.");
-        }
+        let test_err = Builder::from_julian_utc(1999, 2, 29, 11, 59, 59).build().unwrap_err();
+        assert_eq!(test_err, AstroAlgorithmsError::InvalidJulianDate);
 
-        let test_time = Builder::from_julian_utc(1999, 2, 28, 24, 59, 59).build();
-        assert!(test_time.is_err());
-        if let AstroAlgorithmsError::InvalidTime(hour, minute, second) = test_time.unwrap_err() {
-            assert!(hour == 24 && minute == 59 && second == 59);
-        } else {
-            panic!("Wrong error type returned.");
-        }
+        let test_err = Builder::from_julian_utc(1999, 2, 28, 24, 59, 59).build().unwrap_err();
+        assert_eq!(test_err, AstroAlgorithmsError::InvalidTime);
     }
 }
 
@@ -512,7 +459,6 @@ impl AstroTime {
     /// assert!( minute == 58 );
     /// assert!( second == 5 );
     /// ```
-    // TODO create a simple datetime type and return it.
     pub fn to_gregorian_utc(&self) -> (i32, i32, i32, i32, i32, i32) {
         // Adapted from chapter 7, pages 60-61 of Astronomical Algorithms, 2nd Edition
         // by Jean Meeus.
@@ -598,7 +544,7 @@ impl AstroTime {
         DegreeAngle::new(theta_0)
     }
 
-    // Calculate the delta-t value for applying a conversion between unversal
+    // Calculate the delta-t value for applying a conversion between universal
     // and dynamical time.
     fn get_delta_t(&self) -> f64 {
         use self::time_data::TIME_DELTA;
@@ -773,7 +719,7 @@ pub fn day_of_year_gregorian(year: i32, month: i32, day: i32) -> AstroResult<i32
             K * f64::floor((month + 9) as f64 / 12.0)) as i32 + day - 30)
 
     } else {
-        Err(AstroAlgorithmsError::InvalidGregorianDate(year, month, day))
+        Err(AstroAlgorithmsError::InvalidGregorianDate)
     }
 }
 
@@ -801,7 +747,7 @@ pub fn month_and_day_gregorian(year: i32, day_of_year: i32) -> AstroResult<(i32,
     if is_valid_gregorian(year, M, D) {
         Ok((M, D))
     } else {
-        Err(AstroAlgorithmsError::InvalidGregorianDate(year, M, D))
+        Err(AstroAlgorithmsError::InvalidGregorianDate)
     }
 }
 
@@ -934,12 +880,8 @@ mod tests {
         assert!(day_of_year_gregorian(1978, 11, 14).unwrap() == 318);
         assert!(day_of_year_gregorian(1988, 4, 22).unwrap() == 113);
 
-        if let AstroAlgorithmsError::InvalidGregorianDate(year, month, day) =
-            day_of_year_gregorian(1988, 4, 31).unwrap_err() {
-            assert!(year == 1988 && month == 4 && day == 31);
-        } else {
-            panic!("Wrong error type returned.");
-        }
+        assert_eq!(AstroAlgorithmsError::InvalidGregorianDate,
+                   day_of_year_gregorian(1988, 4, 31).unwrap_err());
     }
 
     #[test]
@@ -949,11 +891,8 @@ mod tests {
         assert!(month_and_day_gregorian(1988, 113).unwrap() == (4, 22));
         assert!(month_and_day_gregorian(1988, 366).unwrap() == (12, 31));
 
-        if let AstroAlgorithmsError::InvalidGregorianDate(_, _, _) =
-            month_and_day_gregorian(1989, 366).unwrap_err() {
-        } else {
-            panic!("Wrong error type returned.");
-        }
+        assert_eq!(AstroAlgorithmsError::InvalidGregorianDate,
+                   month_and_day_gregorian(1989, 366).unwrap_err());
     }
 
     #[test]

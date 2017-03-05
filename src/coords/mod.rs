@@ -31,11 +31,11 @@ pub use self::angles::*;
 // to define the constant in the angles sub-module, but it belongs here.
 lazy_static! {
     /// Obliquity of the ecliptic for the standard 2000 epoch.
-    pub static ref EPSILON_2000: RadianAngle = 
+    pub static ref EPSILON_2000: RadianAngle =
         RadianAngle::from(DegreeAngle::new( 23.439_291_1 ).unwrap());
 
     /// Obliquity of the ecliptic for the standard 1950 epoch.
-    pub static ref EPSILON_1950: RadianAngle = 
+    pub static ref EPSILON_1950: RadianAngle =
         RadianAngle::from(DegreeAngle::new( 23.445_788_9 ).unwrap());
 }
 
@@ -114,7 +114,7 @@ impl GeoCoords {
         if lat_val < -90.0 || lat_val > 90.0 || lon_val < -180.0 || lon_val > 180.0 {
             // TODO better range error
             println!("lat: {:?}  lon: {:?}", lat_val, lon_val);
-            Err(AstroAlgorithmsError::UnspecifiedError)
+            Err(AstroAlgorithmsError::Unspecified)
         } else {
             Ok(GeoCoords {
                 latitude: RadianAngle::from(lat),

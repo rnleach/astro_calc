@@ -138,9 +138,9 @@ impl HMSAngle {
         } else if seconds.is_infinite() {
             Err(AstroAlgorithmsError::EncounteredInf)
         } else if hours.is_negative() || minutes.is_negative() || seconds.is_sign_negative() {
-            Err(AstroAlgorithmsError::EncounteredInappropriateNegativeValue)
+            Err(AstroAlgorithmsError::Range)
         } else if hours > 23 {
-            Err(AstroAlgorithmsError::InvalidAngle("Hour limited to range [0,24)".to_owned()))
+            Err(AstroAlgorithmsError::InvalidAngle)
         } else {
             Ok(HMSAngle {
                 hours: hours,
@@ -222,9 +222,9 @@ mod angle_constructor_tests {
         assert_eq!(HMSAngle::new(22, 22, f64::INFINITY).unwrap_err(),
                    AstroAlgorithmsError::EncounteredInf);
         assert_eq!(HMSAngle::new(-22, 22, 22.22).unwrap_err(),
-                   AstroAlgorithmsError::EncounteredInappropriateNegativeValue);
+                   AstroAlgorithmsError::Range);
         assert_eq!(HMSAngle::new(24, 22, 22.22).unwrap_err(),
-                   AstroAlgorithmsError::InvalidAngle("Hour limited to range [0,24)".to_owned()));
+                   AstroAlgorithmsError::InvalidAngle);
     }
 }
 
@@ -252,8 +252,8 @@ macro_rules! make_add_sub_operators_for {
 
             fn add(self, other: $rhs)->Self {
                 Self::from(
-                    DegreeAngle { 
-                        degrees: DegreeAngle::from(self).degrees + DegreeAngle::from(other).degrees 
+                    DegreeAngle {
+                        degrees: DegreeAngle::from(self).degrees + DegreeAngle::from(other).degrees
                     }
                 )
             }
@@ -263,8 +263,8 @@ macro_rules! make_add_sub_operators_for {
 
             fn sub(self, other: $rhs)->Self {
                 Self::from(
-                    DegreeAngle { 
-                        degrees: DegreeAngle::from(self).degrees - DegreeAngle::from(other).degrees 
+                    DegreeAngle {
+                        degrees: DegreeAngle::from(self).degrees - DegreeAngle::from(other).degrees
                     }
                 )
             }
