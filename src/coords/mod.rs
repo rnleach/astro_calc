@@ -153,8 +153,14 @@ fn local_hour_angle(gmt: AstroTime,
 }
 
 // Transform from equatorial to ecliptical coordinates.
-fn trans_equatorial_to_ecliptical(eq: EquatorialCoords, obliquity_of_ecliptic: RadianAngle) -> EclipticCoords {
-    EclipticCoords{latitude:RadianAngle::new(0.0), longitude: RadianAngle::new(0.0), epoch: eq.epoch}
+fn trans_equatorial_to_ecliptical(eq: EquatorialCoords,
+                                  obliquity_of_ecliptic: RadianAngle)
+                                  -> EclipticCoords {
+    EclipticCoords {
+        latitude: RadianAngle::new(0.0),
+        longitude: RadianAngle::new(0.0),
+        epoch: eq.epoch,
+    }
 }
 
 // test approximate equality, only used in unit tests.
