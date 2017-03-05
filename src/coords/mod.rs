@@ -11,6 +11,8 @@
 //! standard epochs of 1950 or 2000, or it could be any other date.
 mod angles;
 
+use std::fmt;
+
 use super::astro_time::*;
 
 pub use self::angles::*;
@@ -132,6 +134,66 @@ impl GeoCoords {
     /// Radian latitude - for use in calculations.
     pub fn radian_lat(&self) -> RadianAngle {
         self.latitude
+    }
+}
+
+impl fmt::Display for GalacticCoords {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let lat = DegreeAngle::from(self.latitude);
+        let lon = DegreeAngle::from(self.longitude);
+        write!(f,
+               "Galactic Coordinates\n  latitude: {}\n  longitude: {}\n  epoch: {}\n",
+               lat,
+               lon,
+               self.epoch)
+    }
+}
+
+impl fmt::Display for EclipticCoords {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let lat = DegreeAngle::from(self.latitude);
+        let lon = DegreeAngle::from(self.longitude);
+        write!(f,
+               "Ecliptic Coordinates\n  latitude: {}\n  longitude: {}\n  epoch: {}\n",
+               lat,
+               lon,
+               self.epoch)
+    }
+}
+
+impl fmt::Display for EquatorialCoords {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let dec = DMSAngle::from(self.declination);
+        let ra = HMSAngle::from(self.right_acension);
+        write!(f,
+               "Equatorial Coordinates\n  RA: {}\n  dec: {}\n  epoch: {}\n",
+               ra,
+               dec,
+               self.epoch)
+    }
+}
+
+impl fmt::Display for GeoCoords {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let lat = DegreeAngle::from(self.latitude());
+        let lon = DegreeAngle::from(self.longitude());
+        write!(f,
+               "Geographic Location - latitude: {},  longitude: {}",
+               lat,
+               lon)
+    }
+}
+
+impl fmt::Display for HorizontalCoords {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let alt = DegreeAngle::from(self.altitude);
+        let az = DegreeAngle::from(self.azimuth);
+        write!(f,
+               "Horizontal Coordinates\n  Alt: {}\n  Az: {}\n  valid: {}\n  for {}\n",
+               alt,
+               az,
+               self.valid_time,
+               self.observer_loc)
     }
 }
 
