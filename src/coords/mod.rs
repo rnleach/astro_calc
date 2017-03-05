@@ -152,6 +152,11 @@ fn local_hour_angle(gmt: AstroTime,
     lst - alpha
 }
 
+// Transform from equatorial to ecliptical coordinates.
+fn trans_equatorial_to_ecliptical(eq: EquatorialCoords, obliquity_of_ecliptic: RadianAngle) -> EclipticCoords {
+    EclipticCoords{latitude:RadianAngle::new(0.0), longitude: RadianAngle::new(0.0), epoch: eq.epoch}
+}
+
 // test approximate equality, only used in unit tests.
 #[cfg(test)]
 fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
@@ -167,8 +172,8 @@ mod private_test {
         // This example is from page 95 of Meeus. I had to make a correction since I am not
         // adjusting for the apparent sidereal time in my calculations. That will come later.
         // The adjust term is the subtraction of 0.0009858333333 degrees from my answer.
-        // Even still, the book example is only accurate to 1 significant digit in seconds, which
-        // translates about 3.5 significant digits in degrees.
+        // Even still, the book example is only accurate to 1 decimal point in seconds, which
+        // translates about 3.5 decimal places in degrees.
         let gmt = Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0).build().unwrap();
         let geo_loc = GeoCoords::new_degrees(DegreeAngle::from(DMSAngle::new(38, 55, 17.0)),
                                              DegreeAngle::from(DMSAngle::new(-77, 3, 56.0)));
