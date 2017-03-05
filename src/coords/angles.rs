@@ -193,6 +193,41 @@ impl RadianAngle {
     pub fn radians(&self) -> f64 {
         self.radians
     }
+
+    /// sin of this angle
+    pub fn sin(self)->f64 {
+        self.radians.sin()
+    }
+
+    /// cos of this angle
+    pub fn cos(self)->f64 {
+        self.radians.cos()
+    }
+
+    /// tan of this angle
+    pub fn tan(self)->f64 {
+        self.radians.tan()
+    }
+
+    /// asin returned as a RadianAngle
+    pub fn asin(val:f64)->Self{
+        RadianAngle{radians: val.asin()}
+    }
+
+    /// acos returned as a RadianAngle
+    pub fn acos(val:f64)->Self{
+        RadianAngle{radians: val.acos()}
+    }
+
+    /// atan returned as a RadianAngle with values -pi/2 to pi/2
+    pub fn atan(val:f64)->Self{
+        RadianAngle{radians: val.atan()}
+    }
+
+    /// atan2 returned as a RadianAngle of the 4 quadrant arctangent of y/x
+    pub fn atan2(y:f64, x:f64)->Self{
+        RadianAngle{radians: y.atan2(x)}
+    }
 }
 
 impl DegreeAngle {
