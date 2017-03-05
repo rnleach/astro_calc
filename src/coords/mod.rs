@@ -11,7 +11,6 @@
 //! standard epochs of 1950 or 2000, or it could be any other date.
 mod angles;
 
-use super::error::*;
 use super::astro_time::*;
 
 pub use self::angles::*;
@@ -31,12 +30,12 @@ pub use self::angles::*;
 // to define the constant in the angles sub-module, but it belongs here.
 lazy_static! {
     /// Obliquity of the ecliptic for the standard 2000 epoch.
-    pub static ref EPSILON_2000: RadianAngle = 
-        RadianAngle::from(DegreeAngle::new( 23.439_291_1 ).unwrap());
+    pub static ref EPSILON_2000: RadianAngle =
+        RadianAngle::from(DegreeAngle::new( 23.439_291_1 ));
 
     /// Obliquity of the ecliptic for the standard 1950 epoch.
-    pub static ref EPSILON_1950: RadianAngle = 
-        RadianAngle::from(DegreeAngle::new( 23.445_788_9 ).unwrap());
+    pub static ref EPSILON_1950: RadianAngle =
+        RadianAngle::from(DegreeAngle::new( 23.445_788_9 ));
 }
 
 /// Coordinate systems used in positional astronomy.
@@ -108,20 +107,11 @@ pub struct GeoCoords {
 
 impl GeoCoords {
     /// Create a new location
-    pub fn new_degrees(lat: DegreeAngle, lon: DegreeAngle) -> AstroResult<GeoCoords> {
-        let lat_val = lat.degrees();
-        let lon_val = lon.degrees();
-        if lat_val < -90.0 || lat_val > 90.0 || lon_val < -180.0 || lon_val > 180.0 {
-            // TODO better range error
-            println!("lat: {:?}  lon: {:?}", lat_val, lon_val);
-            Err(AstroAlgorithmsError::UnspecifiedError)
-        } else {
-            Ok(GeoCoords {
-                latitude: RadianAngle::from(lat),
-                longitude: -RadianAngle::from(lon),
-            })
+    pub fn new_degrees(lat: DegreeAngle, lon: DegreeAngle) -> GeoCoords {
+        GeoCoords {
+            latitude: RadianAngle::from(lat),
+            longitude: -RadianAngle::from(lon),
         }
-
     }
 
     /// Get the longitude with the typical convention of increasing values to the east.
@@ -146,8 +136,8 @@ impl GeoCoords {
 }
 
 // Calculate the local sidereal time
-fn local_sidereal_time(gmt: AstroTime, geo_location: GeoCoords) -> AstroResult<RadianAngle> {
-    let gst = RadianAngle::from(try!(gmt.sidereal_greenwich())).radians();
+fn local_sidereal_time(gmt: AstroTime, geo_location: GeoCoords) -> RadianAngle {
+    let gst = RadianAngle::from(gmt.sidereal_greenwich()).radians();
     let long = geo_location.longitude.radians();
     RadianAngle::new(gst - long)
 }
@@ -156,8 +146,8 @@ fn local_sidereal_time(gmt: AstroTime, geo_location: GeoCoords) -> AstroResult<R
 fn local_hour_angle(gmt: AstroTime,
                     geo_location: GeoCoords,
                     equatorial_location: EquatorialCoords)
-                    -> AstroResult<RadianAngle> {
-    let lst = try!(local_sidereal_time(gmt, geo_location)).radians();
+                    -> RadianAngle {
+    let lst = local_sidereal_time(gmt, geo_location).radians();
     let alpha = equatorial_location.right_acension.radians();
     RadianAngle::new(lst - alpha)
 }
@@ -169,13 +159,11 @@ mod private_test {
     #[test]
     fn test_local_hour_angle() {
         let gmt = Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0).build().unwrap();
-        let geo_loc =
-            GeoCoords::new_degrees(DegreeAngle::from(DMSAngle::new(38, 55, 17.0).unwrap()),
-                                   DegreeAngle::from(DMSAngle::new(-77, 3, 56.0).unwrap()))
-                .unwrap();
+        let geo_loc = GeoCoords::new_degrees(DegreeAngle::from(DMSAngle::new(38, 55, 17.0)),
+                                             DegreeAngle::from(DMSAngle::new(-77, 3, 56.0)));
         let astro_loc = EquatorialCoords {
-            right_acension: RadianAngle::from(HMSAngle::new(23, 9, 16.641).unwrap()),
-            declination: RadianAngle::from(DMSAngle::new(-6, 43, 11.61).unwrap()),
+            right_acension: RadianAngle::from(HMSAngle::new(23, 9, 16.641)),
+            declination: RadianAngle::from(DMSAngle::new(-6, 43, 11.61)),
             epoch: gmt,
         };
         println!("{:?}", local_hour_angle(gmt, geo_loc, astro_loc));
