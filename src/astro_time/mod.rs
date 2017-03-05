@@ -524,7 +524,7 @@ impl AstroTime {
     /// Get the sidereal time at Greenwich.
     ///
     /// Returns the sidereal time in decimal degrees.
-    pub fn sidereal_greenwich(&self) -> AstroResult<DegreeAngle> {
+    pub fn sidereal_greenwich(&self) -> DegreeAngle {
         // Chapter 12 of Astronomical Algorithms 2nd ed. By Jean Meeus.
         use std::f64;
 
@@ -675,7 +675,6 @@ mod astro_time_tests {
                               .build()
                               .unwrap()
                               .sidereal_greenwich()
-                              .unwrap()
                               .degrees(),
                           128.737_873_4,
                           1.0e-6));
