@@ -9,6 +9,7 @@
 //!
 use std::cmp::Ordering;
 use std::option::Option;
+use std::fmt;
 
 use super::error::*;
 use super::coords::DegreeAngle;
@@ -429,6 +430,26 @@ impl PartialOrd for AstroTime {
         } else {
             None
         }
+    }
+}
+
+impl fmt::Display for AstroTime {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (year, month, day, hour, minute, second) = self.to_gregorian_utc();
+        let suffix = if self.time_type == TimeType::UT {
+            "UTC"
+        } else {
+            "TT"
+        };
+        write!(f,
+               "{}/{}/{} {}:{}:{} {}",
+               year,
+               month,
+               day,
+               hour,
+               minute,
+               second,
+               suffix)
     }
 }
 
