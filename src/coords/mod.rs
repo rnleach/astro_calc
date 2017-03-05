@@ -38,10 +38,18 @@ lazy_static! {
     /// Obliquity of the ecliptic for the standard 1950 epoch.
     pub static ref EPSILON_1950: RadianAngle =
         RadianAngle::from(DegreeAngle::new( 23.445_788_9 ));
+
+    /// Time of the standard epoch J2000
+    pub static ref J2000: AstroTime = Builder::from_gregorian_utc(2000, 1, 1, 12, 0, 0)
+                                               .dynamical_time().build().unwrap();
+
+    /// Time of the standard epoch B1950
+    pub static ref B1950: AstroTime = Builder::from_gregorian_utc(1950, 1, 1, 12, 0, 0)
+                                               .dynamical_time().build().unwrap();
 }
 
 /// Coordinate systems used in positional astronomy.
-pub trait AstroCoordinate {}
+pub trait AstroCoordinate: fmt::Display {}
 
 /// Galactic Coordinates with the galactic equator in the galactic plane, and the galactic north
 /// pole is in the same hemisphere as the terrestrial north pole.
@@ -218,9 +226,15 @@ fn local_hour_angle(gmt: AstroTime,
 fn trans_equatorial_to_ecliptical(eq: EquatorialCoords,
                                   obliquity_of_ecliptic: RadianAngle)
                                   -> EclipticCoords {
+    let lon = RadianAngle::atan2(eq.right_acension.sin() * obliquity_of_ecliptic.cos() +
+                                 eq.declination.tan() * obliquity_of_ecliptic.sin(),
+                                 eq.right_acension.cos());
+    let lat = RadianAngle::asin(eq.declination.sin() * obliquity_of_ecliptic.cos() -
+                                eq.declination.cos() * obliquity_of_ecliptic.sin() *
+                                eq.right_acension.sin());
     EclipticCoords {
-        latitude: RadianAngle::new(0.0),
-        longitude: RadianAngle::new(0.0),
+        latitude: lat,
+        longitude: lon,
         epoch: eq.epoch,
     }
 }
@@ -273,5 +287,26 @@ mod private_test {
                               .degrees() - 0.0009858333333,
                           64.352133,
                           1.4e-4));
+    }
+
+    #[test]
+    fn test_trans_equatorial_to_ecliptical() {
+        let eq_coords = EquatorialCoords {
+            right_acension: RadianAngle::from(HMSAngle::new(7, 45, 18.946)),
+            declination: RadianAngle::from(DMSAngle::new(28, 1, 34.26)),
+            epoch: J2000.clone(),
+        };
+        let obliquity = RadianAngle::from(DegreeAngle::new(23.4392911));
+
+        let ec_coords = trans_equatorial_to_ecliptical(eq_coords, obliquity);
+
+        println!("\nPosition:\n{}\n", ec_coords);
+        
+        assert!(approx_eq(DegreeAngle::from(ec_coords.latitude).degrees(),
+                          6.684170,
+                          1.0e-6));
+        assert!(approx_eq(DegreeAngle::from(ec_coords.longitude).degrees(),
+                          113.215630,
+                          1.0e-6));
     }
 }
