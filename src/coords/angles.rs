@@ -14,6 +14,9 @@
 use std::convert::From;
 use std::fmt;
 use std::ops;
+use std::f64::consts::{PI, FRAC_PI_2};
+
+use super::super::error::*;
 
 // TODO map to branch trait, use 0 to 360 and -180 to 180 branches
 
@@ -51,57 +54,134 @@ pub struct HMSAngle {
 pub trait Angle
     : From<RadianAngle> + From<DegreeAngle> + From<DMSAngle> + From<HMSAngle> + fmt::Display +
     ops::Add<RadianAngle> + ops::Add<DegreeAngle> +ops::Add<DMSAngle> +ops::Add<HMSAngle> +
-    ops::Sub<RadianAngle> + ops::Sub<DegreeAngle> +ops::Sub<DMSAngle> +ops::Sub<HMSAngle>
+    ops::Sub<RadianAngle> + ops::Sub<DegreeAngle> +ops::Sub<DMSAngle> +ops::Sub<HMSAngle> + ops::Neg
     {
 /// Detect if the underlying number is a NaN value
     fn is_nan(self) -> bool;
 
 /// Detect if the underlying number is infinite
     fn is_infinite(self) -> bool;
+
+/// Map to a standard time (right acension, sidereal time) range. For degrees this is [0,360).
+    fn map_to_time_range(self)->Self;
+
+/// Map to a standard latitude range (declination, etc). For degrees this is [-90, 90].
+    fn map_to_latitude_range(self)->AstroResult<Self>;
+
+/// Map to a standard longitude range. For degrees this is (-180, 180].
+    fn map_to_longitude_range(self)->Self;
 }
 
 impl Angle for RadianAngle {
-    /// Detect if the underlying number is a NaN value
     fn is_nan(self) -> bool {
         self.radians.is_nan()
     }
 
-    /// Detect if the underlying number is infinite
     fn is_infinite(self) -> bool {
         self.radians.is_infinite()
     }
+
+    fn map_to_time_range(self) -> Self {
+        RadianAngle { radians: map_to_branch(self.radians, 0.0, 2.0 * PI) }
+    }
+
+    fn map_to_latitude_range(self) -> AstroResult<Self> {
+        let val = map_to_branch(self.radians, -PI, PI);
+        if val < -FRAC_PI_2 || val > FRAC_PI_2 {
+            Err(AstroAlgorithmsError::Range)
+        } else {
+            Ok(RadianAngle { radians: val })
+        }
+    }
+
+    fn map_to_longitude_range(self) -> Self {
+        RadianAngle { radians: map_to_branch(self.radians, -PI, PI) }
+    }
 }
 impl Angle for DegreeAngle {
-    /// Detect if the underlying number is a NaN value
     fn is_nan(self) -> bool {
         self.degrees.is_nan()
     }
 
-    /// Detect if the underlying number is infinite
     fn is_infinite(self) -> bool {
         self.degrees.is_infinite()
     }
+
+    fn map_to_time_range(self) -> Self {
+        DegreeAngle { degrees: map_to_branch(self.degrees, 0.0, 360.0) }
+    }
+
+    fn map_to_latitude_range(self) -> AstroResult<Self> {
+        let val = map_to_branch(self.degrees, -180.0, 180.0);
+        if val < -90.02 || val > 90.0 {
+            Err(AstroAlgorithmsError::Range)
+        } else {
+            Ok(DegreeAngle { degrees: val })
+        }
+    }
+
+    fn map_to_longitude_range(self) -> Self {
+        DegreeAngle { degrees: map_to_branch(self.degrees, -180.0, 180.0) }
+    }
 }
 impl Angle for DMSAngle {
-    /// Detect if the underlying number is a NaN value
     fn is_nan(self) -> bool {
         self.seconds.is_nan()
     }
 
-    /// Detect if the underlying number is infinite
     fn is_infinite(self) -> bool {
         self.seconds.is_infinite()
+    }
+
+    fn map_to_time_range(self) -> Self {
+        DMSAngle::from(RadianAngle {
+            radians: map_to_branch(RadianAngle::from(self).radians, 0.0, 2.0 * PI),
+        })
+    }
+
+    fn map_to_latitude_range(self) -> AstroResult<Self> {
+        let val = map_to_branch(RadianAngle::from(self).radians, -PI, PI);
+        if val < -FRAC_PI_2 || val > FRAC_PI_2 {
+            Err(AstroAlgorithmsError::Range)
+        } else {
+            Ok(DMSAngle::from(RadianAngle { radians: val }))
+        }
+    }
+
+    fn map_to_longitude_range(self) -> Self {
+        DMSAngle::from(RadianAngle {
+            radians: map_to_branch(RadianAngle::from(self).radians, -PI, PI),
+        })
     }
 }
 impl Angle for HMSAngle {
-    /// Detect if the underlying number is a NaN value
     fn is_nan(self) -> bool {
         self.seconds.is_nan()
     }
 
-    /// Detect if the underlying number is infinite
     fn is_infinite(self) -> bool {
         self.seconds.is_infinite()
+    }
+
+    fn map_to_time_range(self) -> Self {
+        HMSAngle::from(RadianAngle {
+            radians: map_to_branch(RadianAngle::from(self).radians, 0.0, 2.0 * PI),
+        })
+    }
+
+    fn map_to_latitude_range(self) -> AstroResult<Self> {
+        let val = map_to_branch(RadianAngle::from(self).radians, -PI, PI);
+        if val < -FRAC_PI_2 || val > FRAC_PI_2 {
+            Err(AstroAlgorithmsError::Range)
+        } else {
+            Ok(HMSAngle::from(RadianAngle { radians: val }))
+        }
+    }
+
+    fn map_to_longitude_range(self) -> Self {
+        HMSAngle::from(RadianAngle {
+            radians: map_to_branch(RadianAngle::from(self).radians, -PI, PI),
+        })
     }
 }
 
@@ -331,6 +411,17 @@ impl ops::Neg for DMSAngle {
     fn neg(self) -> Self::Output {
         DMSAngle {
             degrees: -self.degrees,
+            minutes: -self.minutes,
+            seconds: -self.seconds,
+        }
+    }
+}
+impl ops::Neg for HMSAngle {
+    type Output = HMSAngle;
+
+    fn neg(self) -> Self::Output {
+        HMSAngle {
+            hours: -self.hours,
             minutes: -self.minutes,
             seconds: -self.seconds,
         }
