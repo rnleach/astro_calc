@@ -25,7 +25,8 @@ pub use self::angles::*;
 // TODO add trait constraint for From, all types should be able to be converted from all others,
 //      except HorizontalCoords cannot be derived from the others (and is not an AstroCoordinate)
 //      but, all the other types should be derivable from HorizontalCoords.
-// TODO add Display trait to AstroCoordinate and HorizontalCoords, and terrestrial coordinates
+// TODO add enum to tag coordinates as mean or apparent, because it can make a difference when
+//      you need to calculate sidereal time.
 
 // This is a heavy handed solution for such small constants, but I cannot do compile time function
 // evaluation yet (maybe later). If I calculated the value directly in radians, I would still have
@@ -40,11 +41,11 @@ lazy_static! {
         RadianAngle::from(DegreeAngle::new( 23.445_788_9 ));
 
     /// Time of the standard epoch J2000
-    pub static ref J2000: AstroTime = Builder::from_gregorian_utc(2000, 1, 1, 12, 0, 0)
+    pub static ref J2000: AstroTime = Builder::from_julian_date(2_451_545.00)
                                                .dynamical_time().build().unwrap();
 
     /// Time of the standard epoch B1950
-    pub static ref B1950: AstroTime = Builder::from_gregorian_utc(1950, 1, 1, 12, 0, 0)
+    pub static ref B1950: AstroTime = Builder::from_julian_date(2_433_282.423_5)
                                                .dynamical_time().build().unwrap();
 }
 
@@ -172,7 +173,7 @@ impl fmt::Display for EclipticCoords {
 impl fmt::Display for EquatorialCoords {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let dec = DMSAngle::from(self.declination);
-        let ra = HMSAngle::from(self.right_acension);
+        let ra = HMSAngle::from(self.right_acension).map_to_time_range();
         write!(f,
                "Equatorial Coordinates\n  RA: {}\n  dec: {}\n  epoch: {}\n",
                ra,
@@ -206,20 +207,31 @@ impl fmt::Display for HorizontalCoords {
 }
 
 // Calculate the local sidereal time
-fn local_sidereal_time(gmt: AstroTime, geo_location: GeoCoords) -> DegreeAngle {
+fn local_sidereal_time(gmt: AstroTime, geo_location: GeoCoords) -> RadianAngle {
     let gst = gmt.sidereal_greenwich();
     let long = geo_location.longitude;
     gst - long
 }
 
+// TODO apparent_local_sidereal_time
+
 // Calculate the local hour angle
 fn local_hour_angle(gmt: AstroTime,
                     geo_location: GeoCoords,
                     equatorial_location: EquatorialCoords)
-                    -> DegreeAngle {
+                    -> RadianAngle {
     let lst = local_sidereal_time(gmt, geo_location);
     let alpha = equatorial_location.right_acension;
     lst - alpha
+}
+
+// Calculate a right-ascension given an hour angle, time, and geographic location.
+fn right_acension_from_hour_angle(ha: RadianAngle,
+                                  geo_location: GeoCoords,
+                                  gmt: AstroTime)
+                                  -> RadianAngle {
+    let lst = local_sidereal_time(gmt, geo_location);
+    lst - ha
 }
 
 // Transform from equatorial to ecliptical coordinates.
@@ -253,6 +265,46 @@ fn trans_ecliptical_to_equatorial(ec: EclipticCoords,
         right_acension: ra,
         declination: dec,
         epoch: ec.epoch,
+    }
+}
+
+// Transform from equatorial to horizontal coordinates. This assumes azimuth reckoned from the
+// south and increasing to the west.
+fn trans_equatorial_to_horizontal(eq: EquatorialCoords,
+                                  geo: GeoCoords,
+                                  gmt: AstroTime)
+                                  -> HorizontalCoords {
+    // TODO transform equatorial coordinates to gmt epoch!
+    let eqa = eq; // eqa = equatorial coords adjusted to current time epoch
+    let h = local_hour_angle(gmt, geo, eqa);
+    let phi = geo.latitude;
+    let delta = eqa.declination;
+    let az = RadianAngle::atan2(h.sin(), h.cos() * phi.sin() - delta.tan() * phi.cos());
+    let alt = RadianAngle::asin(phi.sin() * delta.sin() + phi.cos() * delta.cos() * h.cos());
+
+    HorizontalCoords {
+        altitude: alt,
+        azimuth: az,
+        observer_loc: geo,
+        valid_time: gmt,
+    }
+}
+
+// Transform from horizontal to equatorial coordinates.
+fn trans_horizontal_to_equatorial(hzc: HorizontalCoords) -> EquatorialCoords {
+    let az = hzc.azimuth;
+    let phi = hzc.observer_loc.latitude;
+    let alt = hzc.altitude;
+    let h = RadianAngle::atan2(az.sin(), az.cos() * phi.sin() + alt.tan() * phi.cos());
+
+    let ra = right_acension_from_hour_angle(h, hzc.observer_loc, hzc.valid_time)
+        .map_to_time_range();
+    let delta = RadianAngle::asin(phi.sin() * alt.sin() - phi.cos() * alt.cos() * az.cos());
+
+    EquatorialCoords {
+        declination: delta,
+        right_acension: ra,
+        epoch: hzc.valid_time,
     }
 }
 
@@ -299,8 +351,8 @@ mod private_test {
                                    DegreeAngle::new(0.0009858333333) -
                                    DegreeAngle::new(64.352133)));
         println!();
-        assert!(approx_eq(local_hour_angle(gmt, geo_loc, astro_loc)
-                              .map_to_time_range()
+        assert!(approx_eq(DegreeAngle::from(local_hour_angle(gmt, geo_loc, astro_loc)
+                                  .map_to_time_range())
                               .degrees() - 0.0009858333333,
                           64.352133,
                           1.4e-4));
@@ -333,6 +385,46 @@ mod private_test {
                           eq_coords.right_acension.radians(),
                           1.0e-15));
         assert!(approx_eq(eq_back.declination.radians(),
+                          eq_coords.declination.radians(),
+                          1.0e-15));
+    }
+
+    #[test]
+    fn test_trans_equatorial_to_horizontal_and_back() {
+        // example from page 95 of Meuus
+        let vtime = Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0).build().unwrap();
+
+        // TODO adjusted RA manually to get apparent local hour angle. I need a function
+        // to make adjustments in chpt 22 for apparent sidereal time since these are apparent coords
+        let eq_coords = EquatorialCoords {
+            right_acension: RadianAngle::from(HMSAngle::new(23, 9, 16.8746)),
+            declination: RadianAngle::from(DMSAngle::new(-6, 43, 11.61)),
+            epoch: vtime,
+        };
+
+        println!("Position in original EquatorialCoords: \n{}", eq_coords);
+
+        let geo_coords = GeoCoords::new_degrees(DegreeAngle::from(DMSAngle::new(38, 55, 17.0)),
+                                                DegreeAngle::from(DMSAngle::new(-77, 3, 56.0)));
+
+        let h_coords = trans_equatorial_to_horizontal(eq_coords, geo_coords, vtime);
+
+        println!("\nPosition in horizontal coordinates:\n{}\n", h_coords);
+
+        assert!(approx_eq(DegreeAngle::from(h_coords.altitude).degrees(),
+                          15.1249,
+                          1.0e-3));
+        assert!(approx_eq(DegreeAngle::from(h_coords.azimuth).degrees(),
+                          68.0337,
+                          1.0e-3));
+
+        let h_back = trans_horizontal_to_equatorial(h_coords);
+        println!("Position in back EquatorialCoords: \n{}", h_back);
+
+        assert!(approx_eq(h_back.right_acension.radians(),
+                          eq_coords.right_acension.radians(),
+                          1.0e-15));
+        assert!(approx_eq(h_back.declination.radians(),
                           eq_coords.declination.radians(),
                           1.0e-15));
     }
