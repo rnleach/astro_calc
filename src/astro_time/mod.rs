@@ -12,7 +12,7 @@ use std::option::Option;
 use std::fmt;
 
 use super::error::*;
-use super::coords::DegreeAngle;
+use super::coords::{DegreeAngle, RadianAngle};
 
 mod time_data;
 
@@ -545,7 +545,7 @@ impl AstroTime {
     /// Get the sidereal time at Greenwich.
     ///
     /// Returns the sidereal time in decimal degrees.
-    pub fn sidereal_greenwich(&self) -> DegreeAngle {
+    pub fn sidereal_greenwich(&self) -> RadianAngle {
         // Chapter 12 of Astronomical Algorithms 2nd ed. By Jean Meeus.
         use std::f64;
 
@@ -562,7 +562,7 @@ impl AstroTime {
             theta_0 -= 360.0;
         }
 
-        DegreeAngle::new(theta_0)
+        RadianAngle::from(DegreeAngle::new(theta_0))
     }
 
     // Calculate the delta-t value for applying a conversion between universal
@@ -692,10 +692,10 @@ mod astro_time_tests {
 
     #[test]
     fn test_sidereal_greenwich() {
-        assert!(approx_eq(Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0)
-                              .build()
-                              .unwrap()
-                              .sidereal_greenwich()
+        assert!(approx_eq(DegreeAngle::from(Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0)
+                                  .build()
+                                  .unwrap()
+                                  .sidereal_greenwich())
                               .degrees(),
                           128.737_873_4,
                           1.0e-6));
