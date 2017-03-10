@@ -545,7 +545,7 @@ impl AstroTime {
     /// Get the sidereal time at Greenwich.
     ///
     /// Returns the sidereal time in decimal degrees.
-    pub fn sidereal_greenwich(&self) -> RadianAngle {
+    pub fn mean_sidereal_greenwich(&self) -> RadianAngle {
         // Chapter 12 of Astronomical Algorithms 2nd ed. By Jean Meeus.
         use std::f64;
 
@@ -564,6 +564,8 @@ impl AstroTime {
 
         RadianAngle::from(DegreeAngle::new(theta_0))
     }
+
+    // TODO apparent_sidereal_greenwich
 
     // Calculate the delta-t value for applying a conversion between universal
     // and dynamical time.
@@ -691,11 +693,11 @@ mod astro_time_tests {
     }
 
     #[test]
-    fn test_sidereal_greenwich() {
+    fn test_mean_sidereal_greenwich() {
         assert!(approx_eq(DegreeAngle::from(Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0)
                                   .build()
                                   .unwrap()
-                                  .sidereal_greenwich())
+                                  .mean_sidereal_greenwich())
                               .degrees(),
                           128.737_873_4,
                           1.0e-6));
