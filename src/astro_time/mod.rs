@@ -43,9 +43,9 @@ impl Builder {
         if raw >= 0.0 {
             Builder {
                 target: Ok(AstroTime {
-                    julian_day: raw,
-                    time_type: TimeType::UT,
-                }),
+                               julian_day: raw,
+                               time_type: TimeType::UT,
+                           }),
             }
         } else {
             Builder { target: Err(AstroAlgorithmsError::DateRange) }
@@ -86,9 +86,9 @@ impl Builder {
             if jd >= 0.0 {
                 Builder {
                     target: Ok(AstroTime {
-                        julian_day: jd,
-                        time_type: TimeType::UT,
-                    }),
+                                   julian_day: jd,
+                                   time_type: TimeType::UT,
+                               }),
                 }
             } else {
                 Builder { target: Err(AstroAlgorithmsError::DateRange) }
@@ -129,9 +129,9 @@ impl Builder {
             if jd >= 0.0 {
                 Builder {
                     target: Ok(AstroTime {
-                        julian_day: jd,
-                        time_type: TimeType::UT,
-                    }),
+                                   julian_day: jd,
+                                   time_type: TimeType::UT,
+                               }),
                 }
             } else {
                 Builder { target: Err(AstroAlgorithmsError::DateRange) }
@@ -596,11 +596,10 @@ impl AstroTime {
 
             // Algorithm adapted from chapter 10, pages 78-80 of Astronomical
             // Algorithms,  2nd Edition by Jean Meeus.
-            let t: f64 = (self.julian_day -
-                          Builder::from_gregorian_utc(2000, 1, 1, 0, 0, 0)
-                .build()
-                .unwrap()
-                .julian_day) / 36524.25;
+            let t: f64 =
+                (self.julian_day -
+                 Builder::from_gregorian_utc(2000, 1, 1, 0, 0, 0).build().unwrap().julian_day) /
+                36524.25;
 
             if self.julian_day <
                Builder::from_gregorian_utc(948, 1, 1, 0, 0, 0).build().unwrap().julian_day {
@@ -630,49 +629,37 @@ mod astro_time_tests {
     #[test]
     fn test_to_gregorian_utc() {
 
-        assert!(Builder::from_julian_date(2_436_116.31)
-            .build()
-            .unwrap()
-            .to_gregorian_utc() == (1957, 10, 4, 19, 26, 24));
+        assert!(Builder::from_julian_date(2_436_116.31).build().unwrap().to_gregorian_utc() ==
+                (1957, 10, 4, 19, 26, 24));
 
-        assert!(Builder::from_julian_date(2_451_545.0)
-            .build()
-            .unwrap()
-            .to_gregorian_utc() == (2000, 1, 1, 12, 0, 0));
+        assert!(Builder::from_julian_date(2_451_545.0).build().unwrap().to_gregorian_utc() ==
+                (2000, 1, 1, 12, 0, 0));
 
 
-        assert!(Builder::from_julian_date(1_676_497.5)
-            .build()
-            .unwrap()
-            .to_gregorian_utc() == (-123, 12, 29, 0, 0, 0));
+        assert!(Builder::from_julian_date(1_676_497.5).build().unwrap().to_gregorian_utc() ==
+                (-123, 12, 29, 0, 0, 0));
 
         assert!(Builder::from_gregorian_utc(-123, 12, 29, 0, 0, 0)
-            .build()
-            .unwrap()
-            .to_gregorian_utc() == (-123, 12, 29, 0, 0, 0));
+                    .build()
+                    .unwrap()
+                    .to_gregorian_utc() == (-123, 12, 29, 0, 0, 0));
 
         assert!(Builder::from_gregorian_utc(-2300, 6, 12, 19, 23, 14)
-            .build()
-            .unwrap()
-            .to_gregorian_utc() == (-2300, 6, 12, 19, 23, 14));
+                    .build()
+                    .unwrap()
+                    .to_gregorian_utc() == (-2300, 6, 12, 19, 23, 14));
 
-        assert!(Builder::from_julian_date(1_356_001.25)
-            .build()
-            .unwrap()
-            .to_gregorian_utc() == (-1000, 7, 3, 18, 0, 0));
+        assert!(Builder::from_julian_date(1_356_001.25).build().unwrap().to_gregorian_utc() ==
+                (-1000, 7, 3, 18, 0, 0));
 
-        assert!(Builder::from_julian_date(1_356_001.0)
-            .build()
-            .unwrap()
-            .to_gregorian_utc() == (-1000, 7, 3, 12, 0, 0));
+        assert!(Builder::from_julian_date(1_356_001.0).build().unwrap().to_gregorian_utc() ==
+                (-1000, 7, 3, 12, 0, 0));
     }
 
     #[test]
     fn test_as_utc() {
-        let a_dt = Builder::from_gregorian_utc(1977, 2, 18, 3, 37, 40)
-            .dynamical_time()
-            .build()
-            .unwrap();
+        let a_dt =
+            Builder::from_gregorian_utc(1977, 2, 18, 3, 37, 40).dynamical_time().build().unwrap();
         let as_utc = a_dt.as_utc().unwrap();
         let as_utc2 = Builder::from_gregorian_utc(1977, 2, 18, 3, 36, 52).build().unwrap();
         assert!(approx_eq(as_utc.julian_day_number(),
@@ -683,10 +670,8 @@ mod astro_time_tests {
     #[test]
     fn test_as_dt() {
         let a_utc = Builder::from_gregorian_utc(1977, 2, 18, 3, 36, 52).build().unwrap();
-        let a_dt = Builder::from_gregorian_utc(1977, 2, 18, 3, 37, 40)
-            .dynamical_time()
-            .build()
-            .unwrap();
+        let a_dt =
+            Builder::from_gregorian_utc(1977, 2, 18, 3, 37, 40).dynamical_time().build().unwrap();
         let as_dt = a_utc.as_dt().unwrap();
 
         assert!(approx_eq(as_dt.julian_day_number(), a_dt.julian_day_number(), 1.0e-5));
@@ -695,10 +680,10 @@ mod astro_time_tests {
     #[test]
     fn test_mean_sidereal_greenwich() {
         assert!(approx_eq(DegreeAngle::from(Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0)
-                                  .build()
-                                  .unwrap()
-                                  .mean_sidereal_greenwich())
-                              .degrees(),
+                                                .build()
+                                                .unwrap()
+                                                .mean_sidereal_greenwich())
+                                  .degrees(),
                           128.737_873_4,
                           1.0e-6));
     }
@@ -892,9 +877,8 @@ mod tests {
 
     #[test]
     fn test_julian_day_zero() {
-        assert!(Builder::from_gregorian_utc(2016, 12, 31, 0, 0, 0)
-            .build()
-            .unwrap() == julian_day_zero(2017).unwrap());
+        assert!(Builder::from_gregorian_utc(2016, 12, 31, 0, 0, 0).build().unwrap() ==
+                julian_day_zero(2017).unwrap());
     }
 
     #[test]

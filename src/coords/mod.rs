@@ -10,18 +10,22 @@
 //! All of the coordinates carry a valid time with them. This is the epoch. The epoch may be the
 //! standard epochs of 1950 or 2000, or it could be any other date.
 mod angles;
+mod precession;
 
 use std::fmt;
 
 use super::astro_time::*;
 
+pub use self::precession::*;
 pub use self::angles::*;
+pub use self::precession::{EPSILON_2000, EPSILON_1950, J2050, J2000, B1950, B1900};
 
 // TODO (**In Progress**) implement with low level, primitive type only, private functions closely
 // tied to algorithms in the book.
 //
 //  SUB TODO - implement chpt 22 so I can use apparent coords and times
-//  SUB TODO - implement chpt 21 so I can transform coords between epochs.
+//  SUB TODO - add a function to apply proper motion changes. Do before correcting for precession.
+//  SUB TODO - add a type for Proper Motion (with the effective epoch)
 //
 // TODO Add factory functions to build all types and force invariants (e.g. lat-lon).
 // TODO unit test everything
@@ -31,29 +35,11 @@ pub use self::angles::*;
 // TODO add enum to tag coordinates as mean or apparent, because it can make a difference when
 //      you need to calculate sidereal time.
 
-// This is a heavy handed solution for such small constants, but I cannot do compile time function
-// evaluation yet (maybe later). If I calculated the value directly in radians, I would still have
-// to define the constant in the angles sub-module, but it belongs here.
-lazy_static! {
-    /// Mean Obliquity of the ecliptic for the standard 2000 epoch.
-    pub static ref EPSILON_2000: RadianAngle =
-        RadianAngle::from(DegreeAngle::new( 23.439_291_1 ));
-
-    /// Mean Obliquity of the ecliptic for the standard 1950 epoch.
-    pub static ref EPSILON_1950: RadianAngle =
-        RadianAngle::from(DegreeAngle::new( 23.445_788_9 ));
-
-    /// Time of the standard epoch J2000
-    pub static ref J2000: AstroTime = Builder::from_julian_date(2_451_545.00)
-                                               .dynamical_time().build().unwrap();
-
-    /// Time of the standard epoch B1950
-    pub static ref B1950: AstroTime = Builder::from_julian_date(2_433_282.423_5)
-                                               .dynamical_time().build().unwrap();
-}
-
 /// Coordinate systems used in positional astronomy.
-pub trait AstroCoordinate: fmt::Display {}
+pub trait AstroCoordinate: fmt::Display {
+    /// Get the epoch associated with these coordinates.
+    fn epoch(&self) -> AstroTime;
+}
 
 /// Galactic Coordinates with the galactic equator in the galactic plane, and the galactic north
 /// pole is in the same hemisphere as the terrestrial north pole.
@@ -87,10 +73,45 @@ pub struct EquatorialCoords {
     right_acension: RadianAngle,
     epoch: AstroTime,
 }
+impl EquatorialCoords {
+    /// Build a new set of coordinates.
+    pub fn new(right_acension: RadianAngle,
+               declination: RadianAngle,
+               epoch: AstroTime)
+               -> EquatorialCoords {
+        EquatorialCoords {
+            right_acension: right_acension,
+            declination: declination,
+            epoch: epoch,
+        }
+    }
 
-impl AstroCoordinate for GalacticCoords {}
-impl AstroCoordinate for EclipticCoords {}
-impl AstroCoordinate for EquatorialCoords {}
+    /// Get the right acension.
+    pub fn right_acension(&self) -> RadianAngle {
+        self.right_acension
+    }
+
+    /// Get the declination.
+    pub fn declination(&self) -> RadianAngle {
+        self.declination
+    }
+}
+
+impl AstroCoordinate for GalacticCoords {
+    fn epoch(&self) -> AstroTime {
+        self.epoch
+    }
+}
+impl AstroCoordinate for EclipticCoords {
+    fn epoch(&self) -> AstroTime {
+        self.epoch
+    }
+}
+impl AstroCoordinate for EquatorialCoords {
+    fn epoch(&self) -> AstroTime {
+        self.epoch
+    }
+}
 
 /// Coordinates in the sky from the point of view of an observer on Earth.
 ///
@@ -366,18 +387,18 @@ mod private_test {
                                 DegreeAngle::new(64.352133)));
         println!("Error = {}",
                  DegreeAngle::from(local_mean_hour_angle(gmt, geo_loc, astro_loc)
-                     .map_to_time_range() -
+                                       .map_to_time_range() -
                                    DegreeAngle::new(0.0009858333333) -
                                    DegreeAngle::new(64.352133)));
         println!("Error = {}",
                  RadianAngle::from(local_mean_hour_angle(gmt, geo_loc, astro_loc)
-                     .map_to_time_range() -
+                                       .map_to_time_range() -
                                    DegreeAngle::new(0.0009858333333) -
                                    DegreeAngle::new(64.352133)));
         println!();
         assert!(approx_eq(DegreeAngle::from(local_mean_hour_angle(gmt, geo_loc, astro_loc)
-                                  .map_to_time_range())
-                              .degrees() - 0.0009858333333,
+                                                .map_to_time_range())
+                                  .degrees() - 0.0009858333333,
                           64.352133,
                           1.4e-4));
     }
