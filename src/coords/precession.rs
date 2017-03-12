@@ -83,7 +83,7 @@ pub fn precess_coords(coords: EquatorialCoords, to_epoch: AstroTime) -> Equatori
 // Apply the affects of proper motion to convert coordinates from one epoch to another.
 //
 // Note that this should be done __BEFORE__ applying precession. There is no check to make sure
-// that the epoch and equinox of the proper motion matches that of the coordinates.
+// that the epoch of the proper motion matches that of the coordinates.
 pub fn apply_proper_motion<T, U>(coords: EquatorialCoords,
                                  to_epoch: AstroTime,
                                  ra_motion: T,

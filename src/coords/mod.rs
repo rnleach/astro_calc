@@ -22,12 +22,14 @@ pub use self::precession::{EPSILON_2000, EPSILON_1950, J2050, J2000, B1950, B190
 // tied to algorithms in the book.
 //
 //  SUB TODO - implement chpt 22 so I can use apparent coords and times
+//  SUB TODO - account for proper motion - need a type.
 //
 // TODO Add factory functions to build all types and force invariants (e.g. lat-lon).
 // TODO unit test everything
-// TODO add trait constraint for From, all types should be able to be converted from all others,
-//      except HorizontalCoords cannot be derived from the others (and is not an AstroCoordinate)
-//      but, all the other types should be derivable from HorizontalCoords.
+// TODO add trait constraint From for ecliptic and equatorial coords. HorizontalCoords cannot be
+//      derived from the others without valid time and earth location. But, all the other types
+//      should be derivable from HorizontalCoords. Galactic coords should be derivable from all
+//      others, but all others need an epoch to be transformed into galactic coords.
 // TODO add enum to tag coordinates as mean or apparent, because it can make a difference when
 //      you need to calculate sidereal time.
 
@@ -35,15 +37,6 @@ pub use self::precession::{EPSILON_2000, EPSILON_1950, J2050, J2000, B1950, B190
 pub trait AstroCoordinate: fmt::Display {
     /// Get the epoch associated with these coordinates.
     fn epoch(&self) -> AstroTime;
-}
-
-/// Galactic Coordinates with the galactic equator in the galactic plane, and the galactic north
-/// pole is in the same hemisphere as the terrestrial north pole.
-#[derive(Debug, Clone, Copy)]
-pub struct GalacticCoords {
-    latitude: RadianAngle,
-    longitude: RadianAngle,
-    epoch: AstroTime,
 }
 
 /// Ecliptic coordinates are closely aligned with the mean plane of the planetary orbits in
@@ -93,11 +86,6 @@ impl EquatorialCoords {
     }
 }
 
-impl AstroCoordinate for GalacticCoords {
-    fn epoch(&self) -> AstroTime {
-        self.epoch
-    }
-}
 impl AstroCoordinate for EclipticCoords {
     fn epoch(&self) -> AstroTime {
         self.epoch
@@ -107,6 +95,14 @@ impl AstroCoordinate for EquatorialCoords {
     fn epoch(&self) -> AstroTime {
         self.epoch
     }
+}
+
+/// Galactic Coordinates with the galactic equator in the galactic plane, and the galactic north
+/// pole is in the same hemisphere as the terrestrial north pole.
+#[derive(Debug, Clone, Copy)]
+pub struct GalacticCoords {
+    latitude: RadianAngle,
+    longitude: RadianAngle,
 }
 
 /// Coordinates in the sky from the point of view of an observer on Earth.
@@ -171,10 +167,9 @@ impl fmt::Display for GalacticCoords {
         let lat = DegreeAngle::from(self.latitude);
         let lon = DegreeAngle::from(self.longitude);
         write!(f,
-               "Galactic Coordinates\n  latitude: {}\n  longitude: {}\n  epoch: {}\n",
+               "Galactic Coordinates\n  latitude: {}\n  longitude: {}\n",
                lat,
-               lon,
-               self.epoch)
+               lon)
     }
 }
 
