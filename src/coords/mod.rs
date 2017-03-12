@@ -11,20 +11,17 @@
 //! standard epochs of 1950 or 2000, or it could be any other date.
 mod precession;
 
+use self::precession::*;
 use std::fmt;
+use super::angles::{RadianAngle, DegreeAngle, DMSAngle, HMSAngle, Angle};
+use super::astro_time::AstroTime;
 
-use super::astro_time::*;
-
-pub use self::precession::*;
-use super::angles::*;
 pub use self::precession::{EPSILON_2000, EPSILON_1950, J2050, J2000, B1950, B1900};
 
 // TODO (**In Progress**) implement with low level, primitive type only, private functions closely
 // tied to algorithms in the book.
 //
 //  SUB TODO - implement chpt 22 so I can use apparent coords and times
-//  SUB TODO - add a function to apply proper motion changes. Do before correcting for precession.
-//  SUB TODO - add a type for Proper Motion (with the effective epoch)
 //
 // TODO Add factory functions to build all types and force invariants (e.g. lat-lon).
 // TODO unit test everything
@@ -354,6 +351,7 @@ fn trans_horizontal_to_equatorial(hzc: HorizontalCoords, get_apparent: bool) -> 
 mod private_test {
     use super::*;
     use super::super::test_util::*;
+    use super::super::astro_time::Builder;
 
     #[test]
     fn test_local_mean_hour_angle() {
