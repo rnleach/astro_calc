@@ -23,13 +23,12 @@ pub struct EclipticCoords {
 
 impl EclipticCoords {
     /// Build a new set of coordinates.
-    pub fn new(latitude: RadianAngle,
-               longitude: RadianAngle,
-               epoch: AstroTime)
-               -> EclipticCoords {
+    pub fn new<T, U>(latitude: T, longitude: U, epoch: AstroTime) -> EclipticCoords
+        where RadianAngle: From<T> + From<U>
+    {
         EclipticCoords {
-            latitude: latitude,
-            longitude: longitude,
+            latitude: RadianAngle::from(latitude),
+            longitude: RadianAngle::from(longitude),
             epoch: epoch,
         }
     }

@@ -23,13 +23,12 @@ pub struct EquatorialCoords {
 
 impl EquatorialCoords {
     /// Build a new set of coordinates.
-    pub fn new(right_acension: RadianAngle,
-               declination: RadianAngle,
-               epoch: AstroTime)
-               -> EquatorialCoords {
+    pub fn new<T, U>(right_acension: T, declination: U, epoch: AstroTime) -> EquatorialCoords
+        where RadianAngle: From<T> + From<U>
+    {
         EquatorialCoords {
-            right_acension: right_acension,
-            declination: declination,
+            right_acension: RadianAngle::from(right_acension),
+            declination: RadianAngle::from(declination),
             epoch: epoch,
         }
     }
