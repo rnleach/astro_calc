@@ -12,7 +12,7 @@ use std::option::Option;
 use std::fmt;
 
 use super::error::*;
-use super::coords::{DegreeAngle, RadianAngle};
+use super::angles::{DegreeAngle, RadianAngle};
 
 mod time_data;
 
@@ -43,9 +43,9 @@ impl Builder {
         if raw >= 0.0 {
             Builder {
                 target: Ok(AstroTime {
-                               julian_day: raw,
-                               time_type: TimeType::UT,
-                           }),
+                    julian_day: raw,
+                    time_type: TimeType::UT,
+                }),
             }
         } else {
             Builder { target: Err(AstroAlgorithmsError::DateRange) }
@@ -86,9 +86,9 @@ impl Builder {
             if jd >= 0.0 {
                 Builder {
                     target: Ok(AstroTime {
-                                   julian_day: jd,
-                                   time_type: TimeType::UT,
-                               }),
+                        julian_day: jd,
+                        time_type: TimeType::UT,
+                    }),
                 }
             } else {
                 Builder { target: Err(AstroAlgorithmsError::DateRange) }
@@ -129,9 +129,9 @@ impl Builder {
             if jd >= 0.0 {
                 Builder {
                     target: Ok(AstroTime {
-                                   julian_day: jd,
-                                   time_type: TimeType::UT,
-                               }),
+                        julian_day: jd,
+                        time_type: TimeType::UT,
+                    }),
                 }
             } else {
                 Builder { target: Err(AstroAlgorithmsError::DateRange) }
@@ -640,14 +640,14 @@ mod astro_time_tests {
                 (-123, 12, 29, 0, 0, 0));
 
         assert!(Builder::from_gregorian_utc(-123, 12, 29, 0, 0, 0)
-                    .build()
-                    .unwrap()
-                    .to_gregorian_utc() == (-123, 12, 29, 0, 0, 0));
+            .build()
+            .unwrap()
+            .to_gregorian_utc() == (-123, 12, 29, 0, 0, 0));
 
         assert!(Builder::from_gregorian_utc(-2300, 6, 12, 19, 23, 14)
-                    .build()
-                    .unwrap()
-                    .to_gregorian_utc() == (-2300, 6, 12, 19, 23, 14));
+            .build()
+            .unwrap()
+            .to_gregorian_utc() == (-2300, 6, 12, 19, 23, 14));
 
         assert!(Builder::from_julian_date(1_356_001.25).build().unwrap().to_gregorian_utc() ==
                 (-1000, 7, 3, 18, 0, 0));
@@ -680,10 +680,10 @@ mod astro_time_tests {
     #[test]
     fn test_mean_sidereal_greenwich() {
         assert!(approx_eq(DegreeAngle::from(Builder::from_gregorian_utc(1987, 4, 10, 19, 21, 0)
-                                                .build()
-                                                .unwrap()
-                                                .mean_sidereal_greenwich())
-                                  .degrees(),
+                                  .build()
+                                  .unwrap()
+                                  .mean_sidereal_greenwich())
+                              .degrees(),
                           128.737_873_4,
                           1.0e-6));
     }

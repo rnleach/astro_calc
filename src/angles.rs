@@ -16,7 +16,7 @@ use std::fmt;
 use std::ops;
 use std::f64::consts::{PI, FRAC_PI_2};
 
-use super::super::error::*;
+use super::error::*;
 
 /// Represent an angle in radians.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -133,8 +133,8 @@ impl Angle for DMSAngle {
 
     fn map_to_time_range(self) -> Self {
         DMSAngle::from(RadianAngle {
-                           radians: map_to_branch(RadianAngle::from(self).radians, 0.0, 2.0 * PI),
-                       })
+            radians: map_to_branch(RadianAngle::from(self).radians, 0.0, 2.0 * PI),
+        })
     }
 
     fn map_to_latitude_range(self) -> AstroResult<Self> {
@@ -148,8 +148,8 @@ impl Angle for DMSAngle {
 
     fn map_to_longitude_range(self) -> Self {
         DMSAngle::from(RadianAngle {
-                           radians: map_to_branch(RadianAngle::from(self).radians, -PI, PI),
-                       })
+            radians: map_to_branch(RadianAngle::from(self).radians, -PI, PI),
+        })
     }
 }
 impl Angle for HMSAngle {
@@ -163,8 +163,8 @@ impl Angle for HMSAngle {
 
     fn map_to_time_range(self) -> Self {
         HMSAngle::from(RadianAngle {
-                           radians: map_to_branch(RadianAngle::from(self).radians, 0.0, 2.0 * PI),
-                       })
+            radians: map_to_branch(RadianAngle::from(self).radians, 0.0, 2.0 * PI),
+        })
     }
 
     fn map_to_latitude_range(self) -> AstroResult<Self> {
@@ -178,8 +178,8 @@ impl Angle for HMSAngle {
 
     fn map_to_longitude_range(self) -> Self {
         HMSAngle::from(RadianAngle {
-                           radians: map_to_branch(RadianAngle::from(self).radians, -PI, PI),
-                       })
+            radians: map_to_branch(RadianAngle::from(self).radians, -PI, PI),
+        })
     }
 }
 

@@ -9,7 +9,6 @@
 //!
 //! All of the coordinates carry a valid time with them. This is the epoch. The epoch may be the
 //! standard epochs of 1950 or 2000, or it could be any other date.
-mod angles;
 mod precession;
 
 use std::fmt;
@@ -17,7 +16,7 @@ use std::fmt;
 use super::astro_time::*;
 
 pub use self::precession::*;
-pub use self::angles::*;
+use super::angles::*;
 pub use self::precession::{EPSILON_2000, EPSILON_1950, J2050, J2000, B1950, B1900};
 
 // TODO (**In Progress**) implement with low level, primitive type only, private functions closely
@@ -387,18 +386,18 @@ mod private_test {
                                 DegreeAngle::new(64.352133)));
         println!("Error = {}",
                  DegreeAngle::from(local_mean_hour_angle(gmt, geo_loc, astro_loc)
-                                       .map_to_time_range() -
+                     .map_to_time_range() -
                                    DegreeAngle::new(0.0009858333333) -
                                    DegreeAngle::new(64.352133)));
         println!("Error = {}",
                  RadianAngle::from(local_mean_hour_angle(gmt, geo_loc, astro_loc)
-                                       .map_to_time_range() -
+                     .map_to_time_range() -
                                    DegreeAngle::new(0.0009858333333) -
                                    DegreeAngle::new(64.352133)));
         println!();
         assert!(approx_eq(DegreeAngle::from(local_mean_hour_angle(gmt, geo_loc, astro_loc)
-                                                .map_to_time_range())
-                                  .degrees() - 0.0009858333333,
+                                  .map_to_time_range())
+                              .degrees() - 0.0009858333333,
                           64.352133,
                           1.4e-4));
     }

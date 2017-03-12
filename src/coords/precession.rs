@@ -10,7 +10,7 @@
 //! All of the coordinates carry a valid time with them. This is the epoch. The epoch may be the
 //! standard epochs of 1950 or 2000, or it could be any other date.
 
-use super::angles::{RadianAngle, DegreeAngle, DMSAngle};
+use super::super::angles::{RadianAngle, DegreeAngle, DMSAngle};
 use super::super::astro_time::{Builder, AstroTime};
 use super::{EquatorialCoords, AstroCoordinate};
 
@@ -89,7 +89,7 @@ fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
 #[cfg(test)]
 mod precession_tests {
     use super::*;
-    use super::super::angles::*;
+    use super::super::super::angles::*;
     use super::super::super::astro_time::*;
 
     #[test]
