@@ -169,6 +169,7 @@ impl Builder {
 #[cfg(test)]
 mod astro_tm_bldr_tests {
     use astro_time::*;
+    use super::super::test_util::*;
 
     #[test]
     fn test_from_julian_date() {
@@ -615,6 +616,7 @@ impl AstroTime {
 #[cfg(test)]
 mod astro_time_tests {
     use astro_time::*;
+    use super::super::test_util::*;
 
     #[test]
     fn test_modified_julian_day_number() {
@@ -862,12 +864,6 @@ fn to_hms(day_fraction: f64) -> (i32, i32, i32) {
     let second = f64::floor(remainder * 86_400.0 + 0.5) as i32;
 
     (hour, minute, second)
-}
-
-// test approximate equality, only used in unit tests.
-#[cfg(test)]
-fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
-    (left - right).abs() < tol
 }
 
 // These tests work with functions not belonging to an impl

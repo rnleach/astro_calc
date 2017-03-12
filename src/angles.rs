@@ -641,6 +641,7 @@ impl From<DMSAngle> for HMSAngle {
 #[cfg(test)]
 mod angle_from_tests {
     use super::*;
+    use super::super::test_util::*;
     use std::f64::consts::{PI, FRAC_PI_2, FRAC_PI_3, FRAC_PI_4};
 
     #[test]
@@ -1074,15 +1075,10 @@ fn map_to_branch(val: f64, min: f64, max: f64) -> f64 {
     }
 }
 
-// test approximate equality, only used in unit tests.
-#[cfg(test)]
-fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
-    (left - right).abs() < tol
-}
-
 #[cfg(test)]
 mod angles_tests {
     use super::*;
+    use super::super::test_util::*;
 
     #[test]
     fn test_map_to_branch() {

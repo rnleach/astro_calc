@@ -22,3 +22,6 @@ pub mod error;
 pub mod angles;
 pub mod astro_time;
 pub mod coords;
+
+// Private modules
+mod test_util;

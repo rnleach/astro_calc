@@ -350,15 +350,10 @@ fn trans_horizontal_to_equatorial(hzc: HorizontalCoords, get_apparent: bool) -> 
     }
 }
 
-// test approximate equality, only used in unit tests.
-#[cfg(test)]
-fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
-    (left - right).abs() < tol
-}
-
 #[cfg(test)]
 mod private_test {
     use super::*;
+    use super::super::test_util::*;
 
     #[test]
     fn test_local_mean_hour_angle() {

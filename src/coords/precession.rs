@@ -80,15 +80,10 @@ pub fn precess_coords(coords: EquatorialCoords, to_epoch: AstroTime) -> Equatori
     EquatorialCoords::new(ra, dec, to_epoch)
 }
 
-// test approximate equality, only used in unit tests.
-#[cfg(test)]
-fn approx_eq(left: f64, right: f64, tol: f64) -> bool {
-    (left - right).abs() < tol
-}
-
 #[cfg(test)]
 mod precession_tests {
     use super::*;
+    use super::super::super::test_util::*;
     use super::super::super::angles::*;
     use super::super::super::astro_time::*;
 
