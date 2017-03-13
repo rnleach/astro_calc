@@ -19,17 +19,23 @@ pub struct EclipticCoords {
     latitude: RadianAngle,
     longitude: RadianAngle,
     epoch: AstroTime,
+    valid_time: AstroTime,
 }
 
 impl EclipticCoords {
     /// Build a new set of coordinates.
-    pub fn new<T, U>(latitude: T, longitude: U, epoch: AstroTime) -> EclipticCoords
+    pub fn new<T, U>(latitude: T,
+                     longitude: U,
+                     epoch: AstroTime,
+                     valid_time: AstroTime)
+                     -> EclipticCoords
         where RadianAngle: From<T> + From<U>
     {
         EclipticCoords {
             latitude: RadianAngle::from(latitude),
             longitude: RadianAngle::from(longitude),
             epoch: epoch,
+            valid_time: valid_time,
         }
     }
 
@@ -44,9 +50,17 @@ impl EclipticCoords {
     }
 }
 
-impl AstroCoordinate for EclipticCoords {
+impl AstroCoordinate for EclipticCoords {}
+
+impl HasEpoch for EclipticCoords {
     fn epoch(&self) -> AstroTime {
         self.epoch
+    }
+}
+
+impl HasValidTime for EclipticCoords {
+    fn valid_time(&self) -> AstroTime {
+        self.valid_time
     }
 }
 

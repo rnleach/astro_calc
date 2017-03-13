@@ -12,7 +12,7 @@
 
 use super::super::angles::{RadianAngle, DegreeAngle, DMSAngle};
 use super::super::astro_time::{Builder, AstroTime};
-use super::{EquatorialCoords, AstroCoordinate};
+use super::{EquatorialCoords, HasEpoch, HasValidTime};
 
 // This is a heavy handed solution for such small constants, but I cannot do compile time function
 // evaluation yet (maybe later). If I calculated the value directly in radians, I would still have
@@ -46,7 +46,7 @@ lazy_static! {
 /// Apply the effects of precession to convert coordinates from one equinox to another.
 ///
 /// coords: The coordinates to convert.
-/// to_epoch: The date/time of the epoch and equinox to convert to.
+/// to_epoch: The date/time of the epoch to convert to.
 pub fn precess_coords(coords: EquatorialCoords, to_epoch: AstroTime) -> EquatorialCoords {
     // Algorithm from page 134 of Meeus
     let jd0 = coords.epoch().julian_day_number();
@@ -77,35 +77,13 @@ pub fn precess_coords(coords: EquatorialCoords, to_epoch: AstroTime) -> Equatori
     let ra = RadianAngle::atan2(A, B) + z;
     let dec = RadianAngle::new(C.asin());
 
-    EquatorialCoords::new(ra, dec, to_epoch)
-}
-
-// Apply the affects of proper motion to convert coordinates from one epoch to another.
-//
-// Note that this should be done __BEFORE__ applying precession. There is no check to make sure
-// that the epoch of the proper motion matches that of the coordinates.
-pub fn apply_proper_motion<T, U>(coords: EquatorialCoords,
-                                 to_epoch: AstroTime,
-                                 ra_motion: T,
-                                 dec_motion: U)
-                                 -> EquatorialCoords
-    where RadianAngle: From<T> + From<U>
-{
-
-    let dt = (to_epoch.julian_day_number() - coords.epoch().julian_day_number()) / 365.25;
-
-    let new_ra = coords.right_acension().radians() + RadianAngle::from(ra_motion).radians() * dt;
-    let new_dec = coords.declination().radians() + RadianAngle::from(dec_motion).radians() * dt;
-
-    let new_ra = RadianAngle::new(new_ra);
-    let new_dec = RadianAngle::new(new_dec);
-
-    EquatorialCoords::new(new_ra, new_dec, coords.epoch())
+    EquatorialCoords::new(ra, dec, to_epoch, coords.valid_time())
 }
 
 #[cfg(test)]
 mod precession_tests {
     use super::*;
+    use super::super::proper_motion::{ProperMotionEq, apply_proper_motion_eq};
     use super::super::super::test_util::*;
     use super::super::super::angles::*;
     use super::super::super::astro_time::*;
@@ -115,20 +93,21 @@ mod precession_tests {
         // From example on pg 135 Meeus
         let coords = EquatorialCoords::new(RadianAngle::from(HMSAngle::new(2, 44, 11.986)),
                                            RadianAngle::from(DMSAngle::new(49, 13, 42.48)),
+                                           *J2000,
                                            *J2000);
 
         let to_epoch = Builder::from_julian_date(2_462_088.69).build().unwrap();
-        let ra_pmotion = HMSAngle::new(0, 0, 0.03425);
-        let dec_pmotion = DMSAngle::new(0, 0, -0.0895);
+        let motion = ProperMotionEq::new(HMSAngle::new(0, 0, 0.03425),
+                                         DMSAngle::new(0, 0, -0.0895),
+                                         *J2000);
 
-        let mut new_coords = apply_proper_motion(coords, to_epoch, ra_pmotion, dec_pmotion);
+        let mut new_coords = apply_proper_motion_eq(coords, to_epoch, motion);
         new_coords = precess_coords(new_coords, to_epoch);
 
         println!("\nNew Coords:\n  {}", new_coords);
         println!("RA = {}", DegreeAngle::from(new_coords.right_acension()));
         println!("dec = {}", DegreeAngle::from(new_coords.declination()));
-        println!("delta_RA = {}", ra_pmotion);
-        println!("delta dec = {}", dec_pmotion);
+        println!("Proper Motion = {}", motion);
 
         assert!(approx_eq(DegreeAngle::from(new_coords.right_acension()).degrees(),
                           41.547_214,
@@ -137,18 +116,20 @@ mod precession_tests {
                           49.348_483,
                           1.0e-6));
 
-        let mut old_coords = precess_coords(new_coords, J2000.clone());
-        old_coords = apply_proper_motion(old_coords, to_epoch, -ra_pmotion, -dec_pmotion);
+        let mut old_coords = precess_coords(new_coords, *J2000);
+        old_coords = apply_proper_motion_eq(old_coords, *J2000, motion);
 
         println!("\nOld Coords:\n  {}", old_coords);
         println!("RA = {}", DegreeAngle::from(old_coords.right_acension()));
         println!("dec = {}", DegreeAngle::from(old_coords.declination()));
 
-        assert!(approx_eq(new_coords.right_acension().radians(),
-                          RadianAngle::from(DegreeAngle::new(41.547_214)).radians(),
-                          1.0e-6));
-        assert!(approx_eq(new_coords.declination().radians(),
-                          RadianAngle::from(DegreeAngle::new(49.348_483)).radians(),
-                          1.0e-6));
+        assert!(approx_eq(old_coords.right_acension().radians(),
+                          coords.right_acension().radians(),
+                          1.0e-10));
+        assert!(approx_eq(old_coords.declination().radians(),
+                          coords.declination().radians(),
+                          1.0e-10));
+        assert_eq!(old_coords.valid_time(), coords.valid_time());
+        assert_eq!(old_coords.epoch(), coords.epoch());
     }
 }

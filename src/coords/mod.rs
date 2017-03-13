@@ -13,9 +13,10 @@ mod galactic;
 mod geo;
 mod horizontal;
 mod precession;
+mod proper_motion;
 
 use std::fmt;
-use super::angles::{RadianAngle, DegreeAngle, DMSAngle, HMSAngle, Angle};
+use super::angles::{RadianAngle, DegreeAngle, DMSAngle, HMSAngle};
 use super::astro_time::AstroTime;
 
 pub use self::ecliptic::EclipticCoords;
@@ -24,14 +25,12 @@ pub use self::galactic::GalacticCoords;
 pub use self::geo::GeoCoords;
 pub use self::horizontal::HorizontalCoords;
 pub use self::precession::{EPSILON_2000, EPSILON_1950, J2050, J2000, B1950, B1900};
+pub use self::proper_motion::{ProperMotionEc, ProperMotionEq};
 
 // TODO (**In Progress**) implement with low level, primitive type only, private functions closely
 // tied to algorithms in the book.
 //
-//  SUB TODO - add valid time to ecliptical and equatorial coords
-//  SUB TODO - implement chpt 22 so I can use apparent coords and times
-//  SUB TODO - account for proper motion - need a type.
-//  SUB TODO - refactor AstroCoordinate - make a HasEpoch trait.
+//  SUB TODO - implement chpt 22 (nutation) so I can use apparent coords and times
 //
 // TODO Add factory functions to build all types and force invariants (e.g. lat-lon).
 // TODO unit test everything
@@ -43,9 +42,20 @@ pub use self::precession::{EPSILON_2000, EPSILON_1950, J2050, J2000, B1950, B190
 //      you need to calculate sidereal time.
 
 /// Coordinate systems used in positional astronomy.
-pub trait AstroCoordinate: fmt::Display {
-    /// Get the epoch associated with these coordinates.
+pub trait AstroCoordinate: fmt::Display + HasEpoch + HasValidTime {
+    // TODO add From<Horizontal>, From<GalacticCoords>, From<EquatorialCoords>, From<EclipticCoords>
+}
+
+/// Coordinate systems with an epoch
+pub trait HasEpoch {
+    /// Get the epoch of the equinox.
     fn epoch(&self) -> AstroTime;
+}
+
+/// Coordinate systems with a valid time
+pub trait HasValidTime {
+    /// Get the valid time
+    fn valid_time(&self) -> AstroTime;
 }
 
 // Calculate the local sidereal time
@@ -83,6 +93,8 @@ fn right_acension_from_mean_hour_angle(ha: RadianAngle,
 // TODO mean_obliquity_of_ecliptic
 
 // TODO apparent_obliquity_of_ecliptic
+
+/******************************
 
 // Transform from equatorial to ecliptical coordinates.
 fn trans_equatorial_to_ecliptical(eq: EquatorialCoords,
@@ -265,3 +277,5 @@ mod private_test {
                           1.0e-15));
     }
 }
+
+**********************/

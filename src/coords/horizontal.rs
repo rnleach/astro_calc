@@ -55,9 +55,11 @@ impl HorizontalCoords {
     pub fn observer_location(&self) -> GeoCoords {
         self.observer_loc
     }
+}
 
+impl HasValidTime for HorizontalCoords {
     /// Get the valid time
-    pub fn valid_time(&self) -> AstroTime {
+    fn valid_time(&self) -> AstroTime {
         self.valid_time
     }
 }

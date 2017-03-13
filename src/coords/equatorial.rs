@@ -8,6 +8,7 @@
 //! License: [BSD 3-clause](https://opensource.org/licenses/BSD-3-Clause)
 //!
 use super::*;
+use super::super::angles::Angle;
 
 /// Equatorial coordinates are aligned with the Earth's equator and poles.
 ///
@@ -19,17 +20,23 @@ pub struct EquatorialCoords {
     declination: RadianAngle,
     right_acension: RadianAngle,
     epoch: AstroTime,
+    valid_time: AstroTime,
 }
 
 impl EquatorialCoords {
     /// Build a new set of coordinates.
-    pub fn new<T, U>(right_acension: T, declination: U, epoch: AstroTime) -> EquatorialCoords
+    pub fn new<T, U>(right_acension: T,
+                     declination: U,
+                     epoch: AstroTime,
+                     valid_time: AstroTime)
+                     -> EquatorialCoords
         where RadianAngle: From<T> + From<U>
     {
         EquatorialCoords {
             right_acension: RadianAngle::from(right_acension),
             declination: RadianAngle::from(declination),
             epoch: epoch,
+            valid_time: valid_time,
         }
     }
 
@@ -44,9 +51,17 @@ impl EquatorialCoords {
     }
 }
 
-impl AstroCoordinate for EquatorialCoords {
+impl AstroCoordinate for EquatorialCoords {}
+
+impl HasEpoch for EquatorialCoords {
     fn epoch(&self) -> AstroTime {
         self.epoch
+    }
+}
+
+impl HasValidTime for EquatorialCoords {
+    fn valid_time(&self) -> AstroTime {
+        self.valid_time
     }
 }
 
@@ -55,9 +70,10 @@ impl fmt::Display for EquatorialCoords {
         let dec = DMSAngle::from(self.declination);
         let ra = HMSAngle::from(self.right_acension).map_to_time_range();
         write!(f,
-               "Equatorial Coordinates\n  RA: {}\n  dec: {}\n  epoch: {}\n",
+               "Equatorial Coordinates\n  RA: {}\n  dec: {}\n  epoch: {}\n  valid_time: {}\n",
                ra,
                dec,
-               self.epoch)
+               self.epoch,
+               self.valid_time)
     }
 }
