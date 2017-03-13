@@ -7,8 +7,6 @@
 //!
 //! License: [BSD 3-clause](https://opensource.org/licenses/BSD-3-Clause)
 //!
-//! All of the coordinates carry a valid time with them. This is the epoch. The epoch may be the
-//! standard epochs of 1950 or 2000, or it could be any other date.
 
 use super::super::angles::{RadianAngle, DegreeAngle, DMSAngle};
 use super::super::astro_time::{Builder, AstroTime};
