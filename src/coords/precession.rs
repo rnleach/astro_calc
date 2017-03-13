@@ -1,5 +1,5 @@
 //!
-//! Adjustments to right acension and declination due to precession.
+//! Adjustments to right ascension and declination due to precession.
 //!
 //! Authors: Ryan Leach
 //!
