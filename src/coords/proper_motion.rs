@@ -13,6 +13,7 @@ use std::ops;
 use super::*;
 use super::super::angles::{RadianAngle, DMSAngle, HMSAngle};
 use super::super::astro_time::AstroTime;
+use super::super::error::{AstroResult};
 
 pub trait ProperMotion: ops::Neg + fmt::Display {}
 
@@ -127,8 +128,10 @@ impl fmt::Display for ProperMotionEc {
 pub fn apply_proper_motion_eq(coords: EquatorialCoords,
                               to_valid_time: AstroTime,
                               motion: ProperMotionEq)
-                              -> EquatorialCoords {
-    let dt = (to_valid_time.julian_day_number() - coords.valid_time().julian_day_number()) / 365.25;
+                              -> AstroResult<EquatorialCoords> {
+    let to_valid_time = try!(to_valid_time.as_dt());
+    let coords_valid_time = try!(coords.valid_time().as_dt());
+    let dt = (to_valid_time.julian_day_number() - coords_valid_time.julian_day_number()) / 365.25;
 
     let new_ra = coords.right_acension().radians() + motion.right_acension.radians() * dt;
     let new_dec = coords.declination().radians() + motion.declination.radians() * dt;
@@ -136,19 +139,22 @@ pub fn apply_proper_motion_eq(coords: EquatorialCoords,
     let new_ra = RadianAngle::new(new_ra);
     let new_dec = RadianAngle::new(new_dec);
 
-    EquatorialCoords::new(new_ra, new_dec, coords.epoch(), to_valid_time)
+    Ok(EquatorialCoords::new(new_ra, new_dec, coords.epoch(), to_valid_time))
 }
 
 // Apply the affects of proper motion to convert coordinates from one valid time to another, in
-// ecloptic coordinates.
+// ecliptic coordinates.
 //
 // Note that this should be done __BEFORE__ applying precession. There is no check to make sure
 // that the epoch of the proper motion matches that of the coordinates.
 pub fn apply_proper_motion_ec(coords: EclipticCoords,
                               to_valid_time: AstroTime,
                               motion: ProperMotionEc)
-                              -> EclipticCoords {
-    let dt = (to_valid_time.julian_day_number() - coords.valid_time().julian_day_number()) / 365.25;
+                              -> AstroResult<EclipticCoords> {
+
+    let to_valid_time = try!(to_valid_time.as_dt());
+    let coords_valid_time = try!(coords.valid_time().as_dt());
+    let dt = (to_valid_time.julian_day_number() - coords_valid_time.julian_day_number()) / 365.25;
 
 
     let new_lat = coords.latitude().radians() + motion.latitude.radians() * dt;
@@ -157,7 +163,7 @@ pub fn apply_proper_motion_ec(coords: EclipticCoords,
     let new_lat = RadianAngle::new(new_lat);
     let new_lon = RadianAngle::new(new_lon);
 
-    EclipticCoords::new(new_lat, new_lon, coords.epoch(), to_valid_time)
+    Ok(EclipticCoords::new(new_lat, new_lon, coords.epoch(), to_valid_time))
 }
 
 #[cfg(test)]
@@ -176,12 +182,12 @@ mod tests {
                                            *J2000);
 
         //let to_epoch = Builder::from_julian_date(2_462_088.69).build().unwrap();
-        let to_epoch = Builder::from_gregorian_utc(2028, 11, 13, 4, 33, 36).build().unwrap();
+        let to_valid_time = Builder::from_gregorian_utc(2028, 11, 13, 4, 33, 36).build().unwrap();
         let motion = ProperMotionEq::new(HMSAngle::new(0, 0, 0.03425),
                                          DMSAngle::new(0, 0, -0.0895),
                                          *J2000);
 
-        let new_coords = apply_proper_motion_eq(coords, to_epoch, motion);
+        let new_coords = apply_proper_motion_eq(coords, to_valid_time, motion).unwrap();
 
         println!("\nCoords: {}\nMotion: {}\nNew Coords: {}",
                  coords,
@@ -200,7 +206,7 @@ mod tests {
 
         println!("---------------------------------------------------");
 
-        let old_coords = apply_proper_motion_eq(new_coords, *J2000, motion);
+        let old_coords = apply_proper_motion_eq(new_coords, *J2000, motion).unwrap();
 
         println!("\nNew Coords: {}\n Motion: {}\nOld Coords: {}\nCoords: {}",
                  new_coords,
@@ -211,6 +217,7 @@ mod tests {
         assert!(old_coords.right_acension().radians() == coords.right_acension().radians());
         assert!(old_coords.declination().radians() == coords.declination().radians());
         assert!(old_coords.valid_time() == coords.valid_time());
+        // Nothing in this test changed the epoch.
         assert!(old_coords.epoch() == coords.epoch());
     }
 
