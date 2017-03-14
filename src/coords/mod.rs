@@ -31,8 +31,8 @@ pub use self::proper_motion::{ProperMotionEc, ProperMotionEq};
 // tied to algorithms in the book.
 //
 //  SUB TODO - implement chpt 22 (nutation) so I can use apparent coords and times
+//  SUB TODO - implement conversion from equatorial to ecliptic for proper motion pg 138.
 //
-// TODO Add factory functions to build all types and force invariants (e.g. lat-lon).
 // TODO unit test everything
 // TODO add trait constraint From for ecliptic and equatorial coords. HorizontalCoords cannot be
 //      derived from the others without valid time and earth location. But, all the other types

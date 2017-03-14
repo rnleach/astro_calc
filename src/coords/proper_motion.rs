@@ -9,13 +9,13 @@
 //!
 
 use std::fmt;
-use std::ops;
+
 use super::*;
 use super::super::angles::{RadianAngle, DMSAngle, HMSAngle};
 use super::super::astro_time::AstroTime;
-use super::super::error::{AstroResult};
+use super::super::error::AstroResult;
 
-pub trait ProperMotion: ops::Neg + fmt::Display {}
+pub trait ProperMotion: fmt::Display {}
 
 /// Account for proper motion as provided by an ephemeris in equatorial coordinates.
 #[derive(Debug, Clone, Copy)]
@@ -39,18 +39,6 @@ impl ProperMotionEq {
             right_acension: RadianAngle::from(right_acension),
             declination: RadianAngle::from(declination),
             epoch: epoch,
-        }
-    }
-}
-
-impl ops::Neg for ProperMotionEq {
-    type Output = ProperMotionEq;
-
-    fn neg(self) -> Self::Output {
-        ProperMotionEq {
-            right_acension: -self.right_acension,
-            declination: -self.declination,
-            epoch: self.epoch,
         }
     }
 }
@@ -90,18 +78,6 @@ impl ProperMotionEc {
             latitude: RadianAngle::from(latitude),
             longitude: RadianAngle::from(longitude),
             epoch: epoch,
-        }
-    }
-}
-
-impl ops::Neg for ProperMotionEc {
-    type Output = ProperMotionEc;
-
-    fn neg(self) -> Self::Output {
-        ProperMotionEc {
-            latitude: -self.latitude,
-            longitude: -self.longitude,
-            epoch: self.epoch,
         }
     }
 }

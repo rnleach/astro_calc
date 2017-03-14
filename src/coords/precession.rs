@@ -11,7 +11,7 @@
 use super::{EquatorialCoords, HasEpoch, HasValidTime};
 use super::super::angles::{RadianAngle, DegreeAngle, DMSAngle};
 use super::super::astro_time::{Builder, AstroTime};
-use super::super::error::{AstroResult};
+use super::super::error::AstroResult;
 
 // This is a heavy handed solution for such small constants, but I cannot do compile time function
 // evaluation yet (maybe later). If I calculated the value directly in radians, I would still have
@@ -46,7 +46,9 @@ lazy_static! {
 ///
 /// coords: The coordinates to convert.
 /// to_epoch: The date/time of the epoch to convert to.
-pub fn precess_coords(coords: EquatorialCoords, to_epoch: AstroTime) -> AstroResult<EquatorialCoords> {
+pub fn precess_coords(coords: EquatorialCoords,
+                      to_epoch: AstroTime)
+                      -> AstroResult<EquatorialCoords> {
     // Algorithm from page 134 of Meeus
     let jd0 = try!(coords.epoch().as_dt());
     let jd0 = jd0.julian_day_number();
@@ -98,7 +100,7 @@ mod precession_tests {
                                            *J2000);
 
         //let to_epoch = Builder::from_julian_date(2_462_088.69).build().unwrap();
-        let to_epoch = Builder::from_gregorian_utc(2028,11,13,4,33,36).build().unwrap();
+        let to_epoch = Builder::from_gregorian_utc(2028, 11, 13, 4, 33, 36).build().unwrap();
         let motion = ProperMotionEq::new(HMSAngle::new(0, 0, 0.03425),
                                          DMSAngle::new(0, 0, -0.0895),
                                          *J2000);
