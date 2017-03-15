@@ -70,7 +70,8 @@ impl fmt::Display for EquatorialCoords {
         let dec = DMSAngle::from(self.declination);
         let ra = HMSAngle::from(self.right_acension).map_to_time_range();
         write!(f,
-               "Equatorial Coordinates\n  RA: {}\n  dec: {}\n  epoch: {}\n  valid_time: {}\n",
+               "Equatorial Coordinates\n  RA(\u{03B1}): {}\n  dec(\u{03B4}): {}\n  epoch: {}\n  \
+                    valid_time: {}\n",
                ra,
                dec,
                self.epoch,

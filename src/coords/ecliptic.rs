@@ -69,9 +69,11 @@ impl fmt::Display for EclipticCoords {
         let lat = DegreeAngle::from(self.latitude);
         let lon = DegreeAngle::from(self.longitude);
         write!(f,
-               "Ecliptic Coordinates\n  latitude: {}\n  longitude: {}\n  epoch: {}\n",
+               "Ecliptic Coordinates\n  latitude(\u{03BB}): {}\n  longitude(\u{03B2}): {}\n  \
+                    epoch: {}\n  valid time: {}\n",
                lat,
                lon,
-               self.epoch)
+               self.epoch,
+               self.valid_time)
     }
 }

@@ -69,7 +69,7 @@ impl fmt::Display for HorizontalCoords {
         let alt = DegreeAngle::from(self.altitude);
         let az = DegreeAngle::from(self.azimuth);
         write!(f,
-               "Horizontal Coordinates\n  Alt: {}\n  Az: {}\n  valid: {}\n  for {}\n",
+               "Horizontal Coordinates\n  Alt(h): {}\n  Az(A): {}\n  valid: {}\n  for {}\n",
                alt,
                az,
                self.valid_time,

@@ -44,7 +44,7 @@ impl fmt::Display for GalacticCoords {
         let lat = DegreeAngle::from(self.latitude);
         let lon = DegreeAngle::from(self.longitude);
         write!(f,
-               "Galactic Coordinates\n  latitude: {}\n  longitude: {}\n",
+               "Galactic Coordinates\n  latitude(l): {}\n  longitude(b): {}\n",
                lat,
                lon)
     }
