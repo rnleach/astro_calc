@@ -12,6 +12,7 @@ mod equatorial;
 mod galactic;
 mod geo;
 mod horizontal;
+mod nutation;
 mod precession;
 mod proper_motion;
 
