@@ -196,5 +196,4 @@ mod tests {
         // Nothing in this test changed the epoch.
         assert!(old_coords.epoch() == coords.epoch());
     }
-
 }
