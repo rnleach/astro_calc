@@ -263,6 +263,21 @@ impl DMSAngle {
             seconds: seconds,
         }
     }
+
+    /// Get the seconds
+    pub fn seconds(&self)-> f64 {
+        self.seconds
+    }
+
+    /// Get the degrees
+    pub fn degrees(&self)->i32{
+        self.degrees
+    }
+
+    /// Get the minutes
+    pub fn minutes(&self)->i32{
+        self.minutes
+    }
 }
 
 impl HMSAngle {
