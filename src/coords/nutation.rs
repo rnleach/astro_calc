@@ -39,7 +39,7 @@ impl fmt::Display for Nutation {
 }
 
 /// Calculate nutation effects for a given date.
-pub fn calculate_nutation_data_for_date(epoch: AstroTime)->AstroResult<Nutation> {
+pub fn calculate_nutation_data_for_date(epoch: AstroTime) -> AstroResult<Nutation> {
     // Chapter 22 of Meeus
     #[allow(non_snake_case)]
     let T = epoch.as_dt()?;
@@ -53,7 +53,7 @@ pub fn calculate_nutation_data_for_date(epoch: AstroTime)->AstroResult<Nutation>
     #[allow(non_snake_case)]
     let Mprm = 134.962_98 + T * (477_198.867_398 + T * (-0.008_697_2 + T / 56_250.0));
     #[allow(non_snake_case)]
-    let F = 93.271_91 + T * ( 483_202.017_538 + T * (-0.003_682_5 + T / 327_270.0));
+    let F = 93.271_91 + T * (483_202.017_538 + T * (-0.003_682_5 + T / 327_270.0));
     let omega = 125.044_52 + T * (-1_934.136_261 + T * (0.002_070_8 + T / 450_000.0));
 
     // Pre-calculate some coefficients
@@ -116,7 +116,7 @@ pub fn calculate_nutation_data_for_date(epoch: AstroTime)->AstroResult<Nutation>
         (p2D       + m1Mprm       +   omega,       16.0            ,     -8.0          ), // row 29
         (m2D + p2M          + p2F + p2omega,      -16.0   + 0.1 * T,      7.0          ), // row 30
         (        M                +   omega,      -15.0            ,      9.0          ), // row 31
-      //-------------------------------------------------------------------------------------------  
+      //-------------------------------------------------------------------------------------------
         (m2D       +   Mprm       +   omega,      -13.0            ,      7.0          ), // row 32
         (      m1M                +   omega,      -12.0            ,      6.0          ), // row 33
         (            p2Mprm + m2F          ,       11.0            ,      0.0          ), // row 34
@@ -168,10 +168,24 @@ pub fn calculate_nutation_data_for_date(epoch: AstroTime)->AstroResult<Nutation>
     // Calculate eps0
     #[allow(non_snake_case)]
     let U = T / 100.0;
-    let eps_cor = U * (-4_680.93 + U * (-1.55 + U * (1999.25 + U * (-51.38 + U * (-249.67 + U * (-39.05 + U * (7.12 + U * (27.87 + U * (5.79 + U * 2.45)))))))));
+    let eps_cor =
+        U *
+        (-4_680.93 +
+         U *
+         (-1.55 +
+          U *
+          (1999.25 +
+           U *
+           (-51.38 +
+            U * (-249.67 + U * (-39.05 + U * (7.12 + U * (27.87 + U * (5.79 + U * 2.45)))))))));
     let eps0 = RadianAngle::from(DMSAngle::new(23, 26, 21.448) + DMSAngle::new(0, 0, eps_cor));
 
-    Ok(Nutation { delta_lon: delta_psi, delta_obl: delta_eps, obliquity_ec: eps0, epoch: epoch })
+    Ok(Nutation {
+           delta_lon: delta_psi,
+           delta_obl: delta_eps,
+           obliquity_ec: eps0,
+           epoch: epoch,
+       })
 }
 
 // Apply Nutation
@@ -186,13 +200,14 @@ mod tests {
     fn test_calculate_nutation_data_for_date() {
 
         // From exampe on pg 148 of Meeus.
-        let valid_time = Builder::from_gregorian_utc(1987, 4, 10, 0, 0, 0).dynamical_time().build().unwrap();
-        
+        let valid_time =
+            Builder::from_gregorian_utc(1987, 4, 10, 0, 0, 0).dynamical_time().build().unwrap();
+
         let nutation = calculate_nutation_data_for_date(valid_time).unwrap();
 
         println!("Nutation: {}", nutation);
 
-        let Nutation {delta_lon, delta_obl, obliquity_ec, epoch:_ } = nutation; 
+        let Nutation { delta_lon, delta_obl, obliquity_ec, epoch: _ } = nutation;
         let delta_lon = DMSAngle::from(delta_lon.map_to_longitude_range()).seconds();
         assert!(approx_eq(delta_lon, -3.788, 1.0e-3));
 
@@ -200,7 +215,7 @@ mod tests {
         assert!(approx_eq(delta_obl, 9.443, 1.0e-3));
 
         let obliquity_ec = DMSAngle::from(obliquity_ec.map_to_latitude_range().unwrap());
-        assert!(obliquity_ec.degrees() == 23 && obliquity_ec.minutes() == 26 && 
-            approx_eq(obliquity_ec.seconds(), 27.407, 1.0e-3));
+        assert!(obliquity_ec.degrees() == 23 && obliquity_ec.minutes() == 26 &&
+                approx_eq(obliquity_ec.seconds(), 27.407, 1.0e-3));
     }
 }

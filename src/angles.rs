@@ -265,17 +265,17 @@ impl DMSAngle {
     }
 
     /// Get the seconds
-    pub fn seconds(&self)-> f64 {
+    pub fn seconds(&self) -> f64 {
         self.seconds
     }
 
     /// Get the degrees
-    pub fn degrees(&self)->i32{
+    pub fn degrees(&self) -> i32 {
         self.degrees
     }
 
     /// Get the minutes
-    pub fn minutes(&self)->i32{
+    pub fn minutes(&self) -> i32 {
         self.minutes
     }
 }
