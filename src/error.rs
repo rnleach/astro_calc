@@ -10,7 +10,7 @@
 use std::result;
 
 #[allow(missing_docs)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AstroAlgorithmsError {
     /// Indicate the range of allowable dates was exceeded by an algorithm or type. Most algorithms
     /// do not accept dates with a Julian Date before 0.0.

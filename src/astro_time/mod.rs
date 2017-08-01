@@ -566,7 +566,7 @@ impl AstroTime {
         RadianAngle::from(DegreeAngle::new(theta_0))
     }
 
-    // TODO apparent_sidereal_greenwich
+    // TODO: apparent_sidereal_greenwich
 
     // Calculate the delta-t value for applying a conversion between universal
     // and dynamical time.
@@ -850,7 +850,7 @@ fn day_fraction(hour: i32, minute: i32, second: i32) -> f64 {
 }
 
 // given the fraction of a day, calculate the hour-minutes-seconds
-// TODO return some generalized time type.
+// TODO: return some generalized time type.
 fn to_hms(day_fraction: f64) -> (i32, i32, i32) {
     // Assert should not be an issue if times were validated before calling this function.
     // Since this is private the module author controls validation before use.
