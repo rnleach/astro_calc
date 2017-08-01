@@ -10,7 +10,7 @@
 
 use std::fmt;
 
-use super::super::angles::{RadianAngle, HMSAngle, DMSAngle, Angle};
+use super::super::angles::{RadianAngle, DMSAngle, Angle};
 use super::super::astro_time::AstroTime;
 use super::super::error::*;
 
