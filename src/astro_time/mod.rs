@@ -39,6 +39,21 @@ impl Builder {
     /// Create an AstroTime from a Julian Day number.
     ///
     /// It defaults to `TimeType::UT`.
+    ///
+    /// #Example
+    ///
+    ///```rust
+    /// # use astro_calc::astro_time::Builder;
+    /// # use astro_calc::error::*;
+    ///
+    /// let test_time = Builder::from_julian_date(110.0).build().unwrap();
+    /// let jd = test_time.julian_day_number();
+    /// assert!(jd == 110.0);
+    ///
+    /// let test_time_err = Builder::from_julian_date(-110.0).build().unwrap_err();
+    /// assert_eq!(AstroAlgorithmsError::DateRange, test_time_err);
+    ///
+    ///```
     pub fn from_julian_date(raw: f64) -> Builder {
         if raw >= 0.0 {
             Builder {
