@@ -530,9 +530,9 @@ impl AstroTime {
     /// conversion. This can be wildly inaccurate for years before 1620 and years after 2017.
     /// Future dates use a forecasted correction value, which is very hard to predict.
     ///
-    /// Offsets are linearly interpolated from data take from "Astronomical Algorithms, 2nd ed."
+    /// Offsets are linearly interpolated from data taken from "Astronomical Algorithms, 2nd ed."
     /// by Jean Meeus, pg 79 and some data downloaded from the US Navy's website. It is hard coded
-    /// into the library.
+    /// into the library at this time.
     pub fn as_utc(&self) -> AstroResult<AstroTime> {
         if self.time_type == TimeType::UT {
             Builder::from_julian_date(self.julian_day).build()
